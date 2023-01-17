@@ -4,7 +4,10 @@ import os
 
 
 class Game:
-    def __init__(self):
+    def __init__(self, file=None):
+        # if file != None :
+        #     f = open(file, 'r')
+
         name1 = input("p1 name ")
         name2 = input("p2 name ")
         name3 = input("p3 name ")
@@ -34,6 +37,8 @@ class Game:
     def draw_cards(self):
         #reset deck
         self.deck = Deck()
+        for i in self.players:
+            i.card = []
         print("beginning Game!")
         for i in range(8):
             p1c = self.deck.rm_card()
@@ -121,7 +126,6 @@ class Game:
 
                 self.lineVoid()
                 oupsi = True
-                print(ints[:5])
                 m = None
                 while not(m in ints[:5]):
                     m = input("quel couleur d'atout voulez-vous ?\n(0) trefles\n(1) coeurs\n(2) piques\n(3) carreaux\n(4) passe \n")
@@ -158,10 +162,18 @@ class Game:
                             passed.append(True)
                     if not(int(q)<80 or (len(prises)>0 and prises[-1][1]>=int(q))):
                         prises.append([int(m), int(q), i])
-                elif m == '4' and oupsi:
+                elif (m == '4') and oupsi:
                     passed.append(True)
-                if len(passed)>=3:
+                if len(passed)>=3 and len(prises)!=0:
                     break
+                elif len(prises)==0 and len(passed)>=4:
+                    os.system('clear')
+                    print(f"Tout le monde a passé")
+                    self.lineVoid()
+                    input("press any key to continue")
+                    self.play_mene()
+                    self.allPassed = True
+                    return
         print(prises)
         os.system('clear')
         m = prises[len(prises)-1][0]
@@ -169,7 +181,22 @@ class Game:
         print("la couleur d'atout est le " + self.atout[0])
 
 
+    def isCouleurinCards(self, couleur, cards):
+        suits = ["trefles",
+             "coeurs",
+             "piques",
+             "carreaux"]
+        for j in cards:
+            if suits[j.suit] == couleur:
+                return True
+        return False
+
+
     def play_pli(self):
+        suits = ["trefles",
+             "coeurs",
+             "piques",
+             "carreaux"]
         ints = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         os.system('clear')
         self.pli = []
@@ -186,9 +213,33 @@ class Game:
             r = 'N'
             while r == 'N':
                 m = None
-                while not(m in ints[:len(self.players[(self.idPlayerToPlay+i)%4].card)]):
+                self.carte_jouable = False
+                while  not(self.carte_jouable):
                     m = input("Quel carte voulez-vous jouer ? ")
-                # m=0
+                    while not(m in ints[:len(self.players[(self.idPlayerToPlay+i)%4].card)]):
+                        m = input("Quel carte voulez-vous jouer ? ")
+                    # check if the card is playable it means that the card need to be the color of self.couleur_demandee 
+                    if self.couleur_demandee == None:
+                        break
+                    elif not(suits[self.players[(self.idPlayerToPlay+i)%4].card[int(m)].suit] == self.couleur_demandee):
+                        if suits[self.players[(self.idPlayerToPlay+i)%4].card[int(m)].suit] == self.atout:
+                            #verifier qu'il y a pas de carte avec la couleur demandée dans la main du joueur
+                            if self.isCouleurinCards(self.couleur_demandee, self.players[(self.idPlayerToPlay+i)%4].card):
+                                print("vous ne pouvez pas jouer cette carte")
+                                self.carte_jouable = False
+                            else:
+                                self.carte_jouable = True
+                            
+                        else :
+                            #verifier qu'il n'y a pas de carte de la couleur demandée ni de carte d'atout dans sa main
+                            if self.isCouleurinCards(self.atout, self.players[(self.idPlayerToPlay+i)%4].card) or self.isCouleurinCards(self.couleur_demandee, self.players[(self.idPlayerToPlay+i)%4].card):
+                                print("vous ne pouvez pas jouer cette carte")
+                                self.carte_jouable = False
+                            else:
+                                self.carte_jouable = True
+                    else : 
+                        self.carte_jouable = True
+            
                 r = input("vous voulez jouer le " + str(self.players[(self.idPlayerToPlay+i)%4].card[int(m)]) + " ? (Y/N)")
             os.system('clear')
             if self.couleur_demandee == None:
@@ -315,14 +366,10 @@ class Game:
         else:
             print("les deux equipes sont à égalité avec : "+ str(self.equipe1somme) + " points")
 
-
-
-    def play_game(self):
-        self.equipe1somme = 0
-        self.equipe2somme = 0
-        while (self.equipe1somme<701 and self.equipe2somme<701):
-            self.draw_cards()
-            self.whichAtout()
+    def play_mene(self):
+        self.draw_cards()
+        self.whichAtout()
+        if self.allPassed == False:
             self.nbPlis = 1
             while (len(self.players[0].card) > 0):
                 print("C'est le " + str(self.nbPlis) +"eme pli")
@@ -337,6 +384,17 @@ class Game:
             self.classementTotal()
             self.lineVoid()
             input("Mene suivante ? (press any key)")
+        else:
+            self.allPassed = False
+
+
+
+    def play_game(self):
+        self.allPassed = False
+        self.equipe1somme = 0
+        self.equipe2somme = 0
+        while (self.equipe1somme<701 and self.equipe2somme<701):
+            self.play_mene()
         print("La partie est finie !! Bravo a tous")
         if self.equipe2somme < self.equipe1somme:
             print(f"l'equipe 1 gagne la partie, bravo à {self.players[0].name} et à {self.players[2].name} !")
