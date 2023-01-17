@@ -1,8 +1,8 @@
 class Card:
     suits = ["trefles",
              "coeurs",
-             "carreaux",
-             "piques"]
+             "piques",
+             "carreaux"]
     
     values = [None, None, "7",
               "8", "9", "10",
@@ -35,7 +35,13 @@ class Card:
         return False
 
     def __repr__(self):
-        v = self.values[self.value] +\
-            " de " + \
-            self.suits[self.suit]
+        if self.suit%2 == 0:
+            v = '\033[40m' + self.values[self.value] +\
+                " de " + \
+                self.suits[self.suit] + '\033[49m'
+        elif self.suit%2 == 1:
+            v = '\033[41m' + self.values[self.value] +\
+                " de " + \
+                self.suits[self.suit] + '\033[49m'
+
         return v

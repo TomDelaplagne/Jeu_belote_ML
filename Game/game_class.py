@@ -67,8 +67,8 @@ class Game:
 
         suits = ["trefles",
              "coeurs",
-             "carreaux",
-             "piques"]
+             "piques",
+             "carreaux"]
 
         values = ["7", "8", "9", "J", "Q", "K", "10", "A"]
 
@@ -97,10 +97,11 @@ class Game:
         print("--------------------------------------------")
     
     def whichAtout(self):
+        ints = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         suits = ["trefles",
              "coeurs",
-             "carreaux",
-             "piques"]
+             "piques",
+             "carreaux"]
         prises = []
         passed = []
         while (len(passed)<3):
@@ -113,24 +114,51 @@ class Game:
                     self.lineVoid()
                 print("c'est au tour de " + i.name + " de jouer")
                 m = input("voir ses cartes ? (press any key)")
-                # sort i.card by value and store it in a new list called sortedCard
                 
                 
                 for j in range(len(i.card)):
                     print("(" + str(j) + ") " + str(i.card[j]))
-                if self.players.index(i) != 0:
-                    # dire quel est la plus forte enchere
-                    pass
+
                 self.lineVoid()
-                m = input("quel couleur d'atout voulez-vous ?\n(0) trefles\n(1) coeurs\n(2) carreaux\n(3) piques\n(4) passe \n")
+                oupsi = True
+                print(ints[:5])
+                m = None
+                while not(m in ints[:5]):
+                    m = input("quel couleur d'atout voulez-vous ?\n(0) trefles\n(1) coeurs\n(2) piques\n(3) carreaux\n(4) passe \n")
                 if m != '4':
                     passed = []
-                    q = input("A combien vous voulez prendre ? ")
-                    # for k in prises:
-                    #     if k[1] >= q:
-                    #         print("prise pas legale !")
-                    prises.append([int(m), int(q), i])
-                elif m == '4':
+                    isEntier = False
+                    while not(isEntier):
+                        q = input("A combien vous voulez prendre ? ")
+                        try:
+                            isEntier = (float(q) == int(q))
+                        except ValueError:
+                            print("ceci n'est pas un entier ! ")
+                    
+                    if int(q)<80 or (len(prises)>0 and prises[-1][1]>=int(q)):
+                        self.lineVoid()
+                        print("prise pas legale !")
+                        print("attention a bien enchérir sinon votre enchere ne sera pas comptée !")
+                        
+                        m = None
+                        while not(m in ints[:5]):
+                            m = input("quel couleur d'atout voulez-vous ?\n(0) trefles\n(1) coeurs\n(2) piques\n(3) carreaux\n(4) passe \n")
+                        if m != '4':
+                            passed = []
+                            isEntier = False
+                            while not(isEntier):
+                                q = input("A combien vous voulez prendre ? ")
+                                try:
+                                    isEntier = (q == int(q))
+                                except ValueError:
+                                    print("ceci n'est pas un entier ! ")
+
+                        elif m == '4':
+                            oupsi = False
+                            passed.append(True)
+                    if not(int(q)<80 or (len(prises)>0 and prises[-1][1]>=int(q))):
+                        prises.append([int(m), int(q), i])
+                elif m == '4' and oupsi:
                     passed.append(True)
                 if len(passed)>=3:
                     break
@@ -142,6 +170,7 @@ class Game:
 
 
     def play_pli(self):
+        ints = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
         os.system('clear')
         self.pli = []
         self.couleur_demandee = None
@@ -149,22 +178,33 @@ class Game:
             print("l'atout est le " + self.atout[0])
             if self.couleur_demandee != None:
                 print("la couleur demandee est le " + self.couleur_demandee)
-
+            self.lineVoid()
             print("c'est au tour de " + self.players[(self.idPlayerToPlay+i)%4].name + " de jouer")
             m = input("voir ses cartes ? (press any key)")
             for j in range(len(self.players[(self.idPlayerToPlay+i)%4].card)):
                 print("(" + str(j) + ") " + str(self.players[(self.idPlayerToPlay+i)%4].card[j]))
             r = 'N'
             while r == 'N':
-                #m = input("Quel carte voulez-vous jouer ? ")
-                m=0
+                m = None
+                while not(m in ints[:len(self.players[(self.idPlayerToPlay+i)%4].card)]):
+                    m = input("Quel carte voulez-vous jouer ? ")
+                # m=0
                 r = input("vous voulez jouer le " + str(self.players[(self.idPlayerToPlay+i)%4].card[int(m)]) + " ? (Y/N)")
             os.system('clear')
             if self.couleur_demandee == None:
                 self.couleur_demandee = self.players[(self.idPlayerToPlay+i)%4].card[int(m)].suits[self.players[(self.idPlayerToPlay+i)%4].card[int(m)].suit]
-            print(self.players[(self.idPlayerToPlay+i)%4].name + " joue le " + str(self.players[(self.idPlayerToPlay+i)%4].card[int(m)]))
+           
+            
+            
             self.pli.append(self.players[(self.idPlayerToPlay+i)%4].card[int(m)])
             self.players[(self.idPlayerToPlay+i)%4].card.pop(int(m))
+            
+            #print the card of all players who have palyed there card in the pli already
+            print("Le pli : ")
+            for j in range(len(self.pli)):
+                print(self.players[(self.idPlayerToPlay + j)%4].name + " a joué le " + str(self.pli[j]))
+            self.lineVoid()
+            
         # print(self.pli)
         os.system('clear')
         print("l'atout est le " + self.atout[0])
@@ -195,7 +235,7 @@ class Game:
                     idCartePlusForte = NAtout.index(self.pli[i].values[self.pli[i].value])
                     cartePlusForte = self.pli[i]
                     self.idPlayerToPlay_wait = (self.idPlayerToPlay+i)%4
-
+        self.lineVoid()
         print("la carte qui est la plus forte est le : " + str(cartePlusForte))
         
         gagnant = self.players[(self.pli.index(cartePlusForte)+self.idPlayerToPlay)%4]
@@ -303,5 +343,5 @@ class Game:
         elif self.equipe2somme > self.equipe1somme:
             print(f"l'equipe 2 gagne la partie, bravo à {self.players[1].name} et à {self.players[3].name} !")
         else:
-            print("égalité grrrr ca me gonfle personne gagne tant pis j'ai la flemme de programmer un tie break")
+            print("égalité grrrr ca me gonfle personne gagne tant pis j'ai la flemme de programmer un tie break. Faites un shifoumi au pire")
         input("fin de partie (press enter)")
