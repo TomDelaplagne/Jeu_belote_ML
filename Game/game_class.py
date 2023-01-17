@@ -1,71 +1,7 @@
-#! /usr/bin/python3
-
-import random
-
-class Card:
-    def __init__(self, suit, rank):
-        self.suit = suit
-        self.rank = rank
-
-    def __repr__(self):
-        return f"{self.rank} of {self.suit}"
-
-    def __eq__(self, p2): # p1 == p2
-        if p2 is None:
-            return False
-        return self.suit == p2.suit and self.rank == p2.rank
-
-class Deck:
-    def __init__(self):
-        self.cards = []
-        for suit in ["Spades", "Hearts", "Diamonds", "Clubs"]:
-            for rank in ["Ace", "King", "Queen", "Jack", "10", "9", "8", "7"]:
-                self.cards.append(Card(suit, rank))
-
-    def shuffle(self):
-        random.shuffle(self.cards)
-
-    def deal(self, num_cards):
-        return [self.cards.pop() for _ in range(num_cards)]
-
-class Player:
-    def __init__(self, name, teammate=None):
-        self.name = name
-        self.hand = []
-        self.tricks_taken = []
-        self.teammate = teammate
-    
-    def add_teammate(self, teammate):
-        self.teammate = teammate
-
-    def __repr__(self):
-        return self.name
-
-    def __eq__(self, p2):
-        return self.name == p2.name
-
-    def play_card(self, hand, msg):
-        print(f"{self.name}, it is your turn to play a card. Your hand is: {hand}")
-        print(msg)
-        print("Enter the rank and suit of the card you want to play (e.g. 'Queen of Spades'):")
-        
-        card : Card = None
-        while card == None or card not in hand:
-            played_card = input()
-            try :
-                card = Card(*played_card.split(" of ")[::-1])
-            except ValueError:
-                print("Invalid card. Try again.")
-                continue
-            if (card not in hand):
-                print("You don't have that card in your hand. Try again.")
-        self.hand.remove(card)
-        return card
-
-    def take_trick(self, trick):
-        self.tricks_taken.append(trick)
-
-    
+from player_class import Player
+from deck_class import Deck
+from card_class import Card
+from deck_class import PileOfCard
 
 class BeloteGame:
     def __init__(self, players: list[Player]):
@@ -86,7 +22,9 @@ class BeloteGame:
         # Start the bidding
         (declarer, bid) = self.start_bidding()
 
-        if (declarer == -1) and (bid == -1):
+        try :
+            type(declarer) == Player
+        except NameError:
             # All players have passed, restart the game
             return
 
@@ -108,16 +46,13 @@ class BeloteGame:
         """Prompt each player to bid or pass until a bid is accepted or all players pass."""
         print("Starting the bidding...")
         current_player = self.players[0]
-        highest_bid = 0
+        highest_bid = 70
         highest_bidder : Player = None
         while True:
-            bid = None
             current_player.hand = self.sort_cards(current_player.hand)
-            print(f"{current_player}, it is your turn to bid or pass. Your hand is: {current_player.hand}")
-            while bid not in ["80", "90", "100", "110", "120", "130", "p"]:
-                print(f"Enter your bid (80, 90, 100, 110, 120, or 130) or 'p' to pass:")
-                bid = input()
-            if bid == "p":
+            # TODO : the bidder cant give a bid lower than the highest bid
+            bid = current_player.bid(highest_bid)
+            if bid == None:
                 if highest_bidder is None and current_player == self.players[-1]:
                     # All players have passed and no bids have been placed, restart the bidding process
                     print('All players have passed. Restarting the game...')
@@ -133,10 +68,13 @@ class BeloteGame:
             elif int(bid) > highest_bid:
                 highest_bid = int(bid)
                 highest_bidder = current_player
+                if bid == 250:
+                    print(f"{highest_bidder} has won the bid with a capot.")
+                    return (highest_bidder, highest_bid)
             else:
                 print("Invalid bid. Please enter a higher bid or 'p' to pass.")
             current_player = self.players[(self.players.index(current_player) + 1) % len(self.players)]
-            return (-1, -1)
+        return (-1, -1)
 
     def sort_cards(self, cards, trump_suit=None):
         """Sort a list of Card objects by suit and rank.
@@ -196,10 +134,9 @@ class BeloteGame:
             # The winner of the previous trick is the first player
             indx_current_player = self.players.index(trick_winner)
         
-        trick : list[list[Card]]= []
+        trick = PileOfCard()
         led_suit= None
         trick_winner : Player = None
-        trick_points = 0
         for player in self.players[indx_current_player:] + self.players[:indx_current_player]:
             player.hand = self.sort_cards(player.hand, self.trump_suit)
             if led_suit is None:
@@ -209,7 +146,7 @@ class BeloteGame:
                 led_suit = card.suit
                 trick_winner = player
                 trick_winner_card = card
-                trick_points += self.calculate_card_points(card)
+                trick_points = card.calculate_card_points(self.trump_suit)
             else:
                 print(f"The current trick is: {trick}, the led suit is {led_suit}, and the trick points are {trick_points}.")
                 print(f"The current trick winner is {trick_winner} with the card {trick_winner_card}.")
@@ -217,9 +154,9 @@ class BeloteGame:
                 if led_suit in [card.suit for card in player.hand]:
                     if led_suit == self.trump_suit:
                         trump_cards = [card for card in player.hand if card.suit == self.trump_suit]
-                        if any([self.calculate_card_points(card) > self.calculate_card_points(trick_winner_card) for card in trump_cards]):
+                        if any([card.calculate_card_points(self.trump_suit) > trick_winner_card.calculate_card_points(self.trump_suit) for card in trump_cards]):
                             # If the player has a trump card that is higher than the current trick winner's card, they must play it
-                            hand = [card for card in player.hand if card.suit == self.trump_suit and self.calculate_card_points(card) > self.calculate_card_points(trick_winner_card)]
+                            hand = [card for card in player.hand if card.suit == self.trump_suit and card.calculate_card_points(self.trump_suit) > trick_winner_card.calculate_card_points(self.trump_suit)]
                             card = player.play_card(hand, "You must play a trump card that is higher than the current trick winner's card")
                         else:
                             # If the player has no trump card that is higher than the current trick winner's card, they can play any trump card
@@ -230,56 +167,42 @@ class BeloteGame:
                 elif self.trump_suit in [card.suit for card in player.hand]:
                     if player.teammate == trick_winner:
                         # The player can play any card he wants if he has no card of the led suit even if he has a trump card only if he's teammate is the player which are currently winning the trick
-                        print(f"You have no {led_suit}s. Your teammate is currently winning the trick. You can play any card you want. Your cards are: {player.hand}")
-                        print("Enter the rank and suit of the card you want to play (e.g. 'Queen of Spades'):")
-                        while card == None or card not in player.hand or card.suit != self.trump_suit:
-                            played_card = input()
-                            card = Card(*played_card.split(" of ")[::-1])
-                            if card not in player.hand:
-                                print("Please enter a card that is in your hand.")
+                        card = player.play_card(player.hand, f"You have no {led_suit}s. Your teammate is currently winning the trick. You can play any card you want.")
                     else:
                         # The player has no card of the led suit, but they have a trump card, so they must play a trump card
-                        print(f"You have no {led_suit}s. Your trump cards are: {[card for card in player.hand if card.suit == self.trump_suit]}")
-                        print("Enter the rank and suit of the card you want to play (e.g. 'Queen of Spades'):")
-                        while card == None or card not in player.hand or card.suit != self.trump_suit:
-                            played_card = input()
-                            card = Card(*played_card.split(" of ")[::-1])
-                            if card not in player.hand:
-                                print("Please enter a card that is in your hand.")
-                            elif card.suit != self.trump_suit:
-                                print("You must play a trump card. Please enter a trump card.")
+                        card = player.play_card([card for card in player.hand if card.suit == self.trump_suit], f"You have no {led_suit}s. You must play a trump card.")
                 else:
                     # The player has no card of the led suit or a trump card, so they may play any card
-                    print(f"You have no {led_suit}s or trump cards. Your cards are: {player.hand}")
-                    print("Enter the rank and suit of the card you want to play (e.g. 'Queen of Spades'):")
-                    while card == None or card not in player.hand:
-                        played_card = input()
-                        card = Card(*played_card.split(" of ")[::-1])
-                        if card not in player.hand:
-                            print("Please enter a card that is in your hand.")
+                    card = player.play_card(player.hand, f"You have no {led_suit}s or trump cards.")
 
-                player.hand.remove(card)
                 trick.append(card)
-                trick_points += self.calculate_card_points(card)
+                trick_points += card.calculate_card_points(self.trump_suit)
 
                 if card.suit == led_suit:
                     if self.is_trump(card):
                         # Trump card played, check if it is higher than the current trick winner
-                        if self.calculate_card_points(card) > self.calculate_card_points(trick_winner_card):
+                        if card.calculate_card_points(self.trump_suit) > trick_winner_card.calculate_card_points(self.trump_suit):
                             trick_winner = player
                             trick_winner_card = card
+                        else: pass
                     else:
                         # Non-trump card played, check if it is higher than the current trick winner and that the winning card is not a trump card
-                        if self.calculate_card_points(card) > self.calculate_card_points(trick_winner_card) and not self.is_trump(trick_winner_card):
+                        if card.calculate_card_points(self.trump_suit) > trick_winner_card.calculate_card_points(self.trump_suit) and not self.is_trump(trick_winner_card):
                             trick_winner = player
                             trick_winner_card = card
+                        else: pass
                 else:
                     # Player has no card of the led suit, they may play any card
                     if self.is_trump(card):
-                        # Trump card played, check if it is higher than the current trick winner
-                        if self.calculate_card_points(card) > self.calculate_card_points(trick_winner_card):
+                        # Trump card played, check if the curret winnig card is trump and which is higher
+                        if not self.is_trump(trick_winner_card):
                             trick_winner = player
                             trick_winner_card = card
+                        elif card.calculate_card_points(self.trump_suit) > trick_winner_card.calculate_card_points(self.trump_suit):
+                            trick_winner = player
+                            trick_winner_card = card
+                        else: pass
+                    else: pass
         print(f"{trick_winner} has won the trick with {trick_winner_card}.")
         print(f"{trick_winner} has won {trick_points} points.")
         self.players[self.players.index(trick_winner)].tricks_taken.append(trick)
@@ -307,45 +230,20 @@ class BeloteGame:
             if "King" in [card.rank for card in player.hand if self.is_trump(card)] and "Queen" in [card.rank for card in player.hand if self.is_trump(card)]:
                 points[player] += 20  # Belote bonus
                 print(f"{player} has a belote. They get a bonus of 20 points.")
-        # Calculate individual card points
-        for player in self.players:
-            for card in player.hand:
-                points[player] += self.calculate_card_points(card)
+        # Calculate tricks_taken points
+        for cards in player.tricks_taken:
+            points[player] += cards.calculate_points(self.trump_suit)
         print(points)
         return points
     
-    def calculate_card_points(self, card):
-        """Calculate the points scored by a single card in the Belote game."""
-        if card.suit == self.trump_suit:
-            # Card is a trump card
-            if card.rank == "Ace":
-                return 11
-            elif card.rank == "10":
-                return 10
-            elif card.rank == "King":
-                return 4
-            elif card.rank == "Queen":
-                return 3
-            elif card.rank == "Jack":
-                return 20
-            elif card.rank == "9":
-                return 14
-            else:
-                return 0
-        else:
-            # Card is not a trump card
-            if card.rank == "Ace":
-                return 11
-            elif card.rank == "10":
-                return 10
-            elif card.rank == "King":
-                return 4
-            elif card.rank == "Queen":
-                return 3
-            elif card.rank == "Jack":
-                return 2
-            else:
-                return 0
+    # def calculate_card_points(self, card):
+    #     """Calculate the points scored by a single card in the Belote game."""
+    #     non_trump = {"Ace": 11, "10": 10, "King": 4, "Queen": 3, "Jack": 2}
+    #     trump = {"Ace": 11, "10": 10, "King": 4, "Queen": 3, "Jack": 20, "9": 14}
+    #     if self.is_trump(card):
+    #         return trump[card.rank]
+    #     else:
+    #         return non_trump[card.rank]
 
     def print_results(self, points, bid, declarer):
         """Print the results of the current hand."""
@@ -366,11 +264,3 @@ class BeloteGame:
                 print(f"Team 2 (players {self.players[1]} and {self.players[3]}) has won the hand.")
             else:
                 print(f"Team 1 (players {self.players[0]} and {self.players[2]}) has won the hand.")
-
-
-def main():
-    game = BeloteGame([Player("Alice"), Player("Bob"), Player("Charlie"), Player("David")])
-    game.play()
-
-if __name__ == "__main__":
-    main()
