@@ -3,10 +3,10 @@ from deck_class import PileOfCard
 
 class Player:
     def __init__(self, name : str, teammate=None):
-        
         self.name = name
         self.hand : PileOfCard
-        self.tricks_taken : PileOfCard
+        self.tricks_taken = []
+        # self.tricks_taken : list(PileOfCard) = []
         self.teammate = teammate
     
     def add_teammate(self, teammate):
@@ -43,6 +43,7 @@ class Player:
             print(f"Enter your bid between {higgest_bid+10} and 180 or 'CAPOT', press 'p' to pass:")
             bid = input()
             if bid == "p":
+                print("You have passed.")
                 return None
             if bid == "CAPOT":
                 return 250
@@ -55,3 +56,28 @@ class Player:
 
     def take_trick(self, trick):
         self.tricks_taken.append(trick)
+
+
+class Dumb_Player(Player):
+    def __init__(self, name : str, teammate=None):
+        super().__init__(name, teammate)
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __repr__(self):
+        return super().__repr__() + " (Dumb)"
+
+    
+    def play_card(self, hand, msg):
+        print(hand)
+        print(msg)
+        card = hand[0]
+        self.hand.remove(card)
+        return card
+
+    def bid(self, higgest_bid):
+        if higgest_bid == 70:
+            return 80
+        else:
+            return None

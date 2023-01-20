@@ -1,6 +1,5 @@
 from player_class import Player
 from deck_class import Deck
-from card_class import Card
 from deck_class import PileOfCard
 
 class BeloteGame:
@@ -60,7 +59,6 @@ class BeloteGame:
                     self.play()
                     break
                 else:
-                    print("You have passed.")
                     if (highest_bidder is not None) and (current_player == self.players[(self.players.index(highest_bidder)+3)%4]):
                         # All players have passed, the highest bidder wins the bid
                         print(f"{highest_bidder} has won the bid with a bid of {highest_bid}.")
@@ -134,7 +132,7 @@ class BeloteGame:
             # The winner of the previous trick is the first player
             indx_current_player = self.players.index(trick_winner)
         
-        trick = PileOfCard()
+        trick = (PileOfCard(), trick_num+1)
         led_suit= None
         trick_winner : Player = None
         for player in self.players[indx_current_player:] + self.players[:indx_current_player]:
@@ -142,13 +140,13 @@ class BeloteGame:
             if led_suit is None:
                 # This is the first card played in the trick, so the player can play any card
                 card = player.play_card(player.hand, f"This is the first card played in the trick, so {player} can play any card")
-                trick.append(card)
+                trick[0].append(card)
                 led_suit = card.suit
                 trick_winner = player
                 trick_winner_card = card
                 trick_points = card.calculate_card_points(self.trump_suit)
             else:
-                print(f"The current trick is: {trick}, the led suit is {led_suit}, and the trick points are {trick_points}.")
+                print(f"The current trick is: {[trick[0]]}, the led suit is {led_suit}, and the trick points are {trick_points}.")
                 print(f"The current trick winner is {trick_winner} with the card {trick_winner_card}.")
                 # The player must follow suit if they have a card of the led suit
                 if led_suit in [card.suit for card in player.hand]:
@@ -175,7 +173,7 @@ class BeloteGame:
                     # The player has no card of the led suit or a trump card, so they may play any card
                     card = player.play_card(player.hand, f"You have no {led_suit}s or trump cards.")
 
-                trick.append(card)
+                trick[0].append(card)
                 trick_points += card.calculate_card_points(self.trump_suit)
 
                 if card.suit == led_suit:
@@ -206,6 +204,7 @@ class BeloteGame:
         print(f"{trick_winner} has won the trick with {trick_winner_card}.")
         print(f"{trick_winner} has won {trick_points} points.")
         self.players[self.players.index(trick_winner)].tricks_taken.append(trick)
+        # print(f"{trick_winner} has taken the following tricks: {self.players[self.players.index(trick_winner)].tricks_taken}.")
         return trick_winner
 
     def is_trump(self, card):
@@ -215,39 +214,36 @@ class BeloteGame:
     def calculate_points(self):
         """Calculate the points scored by each team in the current hand."""
         points = {player: 0 for player in self.players}
+        # The last trick is 10 points worth
         if len(self.players[0].tricks_taken) + len(self.players[2].tricks_taken) == 8:
             # Team 1 (players 0 and 2) won all the tricks
             points[self.players[0]] += 250  # Capot bonus
-            points[self.players[2]] += 250
             print(f"Team 1 (players {self.players[0]} and {self.players[2]}) won all the tricks. They get a capot bonus of 250 points.")
         elif len(self.players[1].tricks_taken) + len(self.players[1].tricks_taken) == 8:
             # Team 2 (players 1 and 3) won all the tricks
             points[self.players[1]] += 250  # Capot bonus
-            points[self.players[3]] += 250
             print(f"Team 2 (players {self.players[1]} and {self.players[3]}) won all the tricks. They get a capot bonus of 250 points.")
         # Check for belote bonus
+        # TODO : la ca marche pas du tout j'ai juré
         for player in self.players:
             if "King" in [card.rank for card in player.hand if self.is_trump(card)] and "Queen" in [card.rank for card in player.hand if self.is_trump(card)]:
                 points[player] += 20  # Belote bonus
                 print(f"{player} has a belote. They get a bonus of 20 points.")
         # Calculate tricks_taken points
-        for cards in player.tricks_taken:
-            points[player] += cards.calculate_points(self.trump_suit)
-        print(points)
+        for player in self.players:
+            # Give the 10 points of the last trick
+            if 8 in [trick[1] for trick in player.tricks_taken]:
+                print(f"{player} has taken the last trick: he gains the 10 points bonus.")
+                points[player] += 10 
+            for trick in player.tricks_taken:
+                points[player] += trick[0].calculate_points(self.trump_suit)
+            print(f"{player} has scored {points[player]} points.")
         return points
-    
-    # def calculate_card_points(self, card):
-    #     """Calculate the points scored by a single card in the Belote game."""
-    #     non_trump = {"Ace": 11, "10": 10, "King": 4, "Queen": 3, "Jack": 2}
-    #     trump = {"Ace": 11, "10": 10, "King": 4, "Queen": 3, "Jack": 20, "9": 14}
-    #     if self.is_trump(card):
-    #         return trump[card.rank]
-    #     else:
-    #         return non_trump[card.rank]
 
     def print_results(self, points, bid, declarer):
         """Print the results of the current hand."""
         points = self.calculate_points()
+        print(f"The bid was {bid} points with the trump {self.trump_suit}. The declarer was {declarer}.")
         team1_points = points[self.players[0]] + points[self.players[2]]
         team2_points = points[self.players[1]] + points[self.players[3]]
         print(f"Team 1 (players {self.players[0]} and {self.players[2]}) scored {team1_points} points.")
