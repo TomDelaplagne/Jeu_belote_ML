@@ -19,3 +19,13 @@ class Card:
         if p2 is None:
             return False
         return self.suit == p2.suit and self.rank == p2.rank
+
+    # def __lt__(self, p2):
+    #     if p2 is None:
+    #         return False
+    #     return self.calculate_card_points(trump_suit) < p2.calculate_card_points(trump_suit)
+
+    # def __gt__(self, p2):
+    #     if p2 is None:
+    #         return False
+    #     return self.calculate_card_points(trump_suit) > p2.calculate_card_points(trump_suit)

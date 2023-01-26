@@ -6,8 +6,11 @@ class Player:
         self.name = name
         self.hand : PileOfCard
         self.tricks_taken = []
-        # self.tricks_taken : list(PileOfCard) = []
         self.teammate = teammate
+        self.trump_suit = None
+
+    def declare_trump(self, trump_suit):
+        self.trump_suit = trump_suit
     
     def add_teammate(self, teammate):
         self.teammate = teammate
@@ -68,10 +71,9 @@ class Dumb_Player(Player):
     def __repr__(self):
         return super().__repr__() + " (Dumb)"
 
-    
     def play_card(self, hand, msg):
-        print(hand)
         print(msg)
+        # card = max(hand)
         card = hand[0]
         self.hand.remove(card)
         return card
@@ -81,3 +83,36 @@ class Dumb_Player(Player):
             return 80
         else:
             return None
+
+
+class Smart_Player(Player):
+    """A player that plays the best card in its hand."""
+
+    def __init__(self, name : str, teammate=None):
+        super().__init__(name, teammate)
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __repr__(self):
+        return super().__repr__() + " (Smart)"
+
+    def play_card(self, hand, msg):
+        print(msg)
+        card = self.maxCard(hand, self.trump_suit)
+        self.hand.remove(card)
+        return card
+
+    def bid(self, higgest_bid):
+        if higgest_bid == 70:
+            return 80
+        else:
+            return None
+
+    def maxCard(self, hand, trump_suit):
+        """Return the card with the highest value in the hand."""
+        max_card = hand[0]
+        for card in hand:
+            if card.calculate_card_points(trump_suit) > max_card.calculate_card_points(trump_suit):
+                max_card = card
+        return max_card

@@ -4,7 +4,6 @@ from deck_class import PileOfCard
 
 class BeloteGame:
     def __init__(self, players: list[Player]):
-        
         self.players = players
         for player in players:
             player.add_teammate(players[(players.index(player)+2)%4])
@@ -12,6 +11,8 @@ class BeloteGame:
         self.trump_suit = None
 
     def play(self):
+        """Shuffles and deals cards, starts bidding, plays tricks, calculates points, and prints results."""
+        
         # Shuffle and deal cards
         self.deck.shuffle()
         hands = [self.deck.deal(8) for _ in self.players]
@@ -20,6 +21,10 @@ class BeloteGame:
 
         # Start the bidding
         (declarer, bid) = self.start_bidding()
+
+        # declare_trump for players
+        for player in self.players:
+            player.declare_trump(self.trump_suit)
 
         try :
             type(declarer) == Player
@@ -49,7 +54,6 @@ class BeloteGame:
         highest_bidder : Player = None
         while True:
             current_player.hand = self.sort_cards(current_player.hand)
-            # TODO : the bidder cant give a bid lower than the highest bid
             bid = current_player.bid(highest_bid)
             if bid == None:
                 if highest_bidder is None and current_player == self.players[-1]:
