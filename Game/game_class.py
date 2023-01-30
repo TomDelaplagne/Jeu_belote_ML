@@ -117,23 +117,30 @@ class BeloteGame:
                 (self.players.index(current_player) + 1) % len(self.players)]
         return (-1, -1)
 
-    def sort_cards(self, cards, trump_suit=None):
+    def sort_cards(self, cards: PileOfCard, trump_suit: str = None):
         """Sort a list of Card objects by suit and rank.
 
         If trump_suit is not None, cards are sorted first by whether or not
         they are the trump suit, then by rank within each suit. If trump_suit
         is None, cards are sorted first by suit, then by rank within each suit.
+
+        Parameters:
+        cards (list): The list of Card objects to sort.
+        trump_suit (str): The trump suit.
+
+        Returns:
+        sorted_cards (list): The sorted list of Card objects.
         """
-        sorted_cards: list[Card] = []
+        sorted_cards: PileOfCard = []
         if trump_suit is not None:
             # Sort cards by trump suit first
-            trump_cards: List[Card] = [
+            trump_cards: PileOfCard = [
                 card for card in cards if card.suit == self.trump_suit]
             non_trump_cards: List[Card] = [
                 card for card in cards if card.suit != self.trump_suit]
             # Sort trump suit cards by rank
             trump_cards.sort(key=lambda x: [
-                'Jack', '9', 'Ace', '10', 'King','Queen', '8', '7']
+                'Jack', '9', 'Ace', '10', 'King', 'Queen', '8', '7']
                 .index(x.rank))
             # Sort non-trump suit cards by suit
             non_trump_cards.sort(key=lambda x: x.suit)
@@ -179,17 +186,19 @@ class BeloteGame:
         print(f'Playing trick {trick_num + 1}...')
 
         if trick_winner is None:
-            # This is the first trick of the game, so the player 1 is the 
+            # This is the first trick of the game, so the player 1 is the
             # first player
             indx_current_player = 0
         else:
             # The winner of the previous trick is the first player
             indx_current_player = self.players.index(trick_winner)
-        
+
         trick = (PileOfCard(), trick_num+1)
         led_suit = None
         trick_winner: Player = None
-        for player in self.players[indx_current_player:] + self.players[:indx_current_player]:
+        for player in (
+                self.players[indx_current_player:]
+                + self.players[:indx_current_player]):
             player.hand = self.sort_cards(player.hand, self.trump_suit)
             if led_suit is None:
                 # This is the first card played in the trick, so the player
@@ -200,69 +209,141 @@ class BeloteGame:
                 led_suit = card.suit
                 trick_winner = player
                 trick_winner_card = card
-                trick_points = card.calculate_card_points(self.trump_suit)
+                trick_points = card.points(self.trump_suit)
             else:
-                print(f'The current trick is: {[trick[0]]}, \
-                    the led suit is {led_suit}, \
-                    and the trick points are {trick_points}.')
-                print(f'The current trick winner is {trick_winner} \
-                    with the card {trick_winner_card}.')
-                # The player must follow suit if they have a card of the led
-                # suit
-                if led_suit in [card.suit for card in player.hand]:
-                    if led_suit == self.trump_suit:
-                        trump_cards = [card for card in player.hand if card.suit == self.trump_suit]
-                        if any([card.calculate_card_points(self.trump_suit) > trick_winner_card.calculate_card_points(self.trump_suit) for card in trump_cards]):
-                            # If the player has a trump card that is higher than the current trick winner's card, they must play it
-                            hand = [card for card in player.hand if card.suit == self.trump_suit and card.calculate_card_points(self.trump_suit) > trick_winner_card.calculate_card_points(self.trump_suit)]
-                            card = player.play_card(hand, "You must play a trump card that is higher than the current trick winner's card")
-                        else:
-                            # If the player has no trump card that is higher than the current trick winner's card, they can play any trump card
-                            card = player.play_card([card for card in player.hand if card.suit == self.trump_suit], 'You must play a trump card.')
-                    else:
-                        card = player.play_card([card for card in player.hand if card.suit == led_suit], 'You must follow suit.')
-
-                elif self.trump_suit in [card.suit for card in player.hand]:
-                    if player.teammate == trick_winner:
-                        # The player can play any card he wants if he has no card of the led suit even if he has a trump card only if he's teammate is the player which are currently winning the trick
-                        card = player.play_card(player.hand, f'You have no {led_suit}s. Your teammate is currently winning the trick. You can play any card you want.')
-                    else:
-                        # The player has no card of the led suit, but they have a trump card, so they must play a trump card
-                        card = player.play_card([card for card in player.hand if card.suit == self.trump_suit], f'You have no {led_suit}s. You must play a trump card.')
-                else:
-                    # The player has no card of the led suit or a trump card, so they may play any card
-                    card = player.play_card(player.hand, f'You have no {led_suit}s or trump cards.')
-
-                trick[0].append(card)
-                trick_points += card.calculate_card_points(self.trump_suit)
-
-                if card.suit == led_suit:
-                    if self.is_trump(card):
-                        # Trump card played, check if it is higher than the current trick winner
-                        if card.calculate_card_points(self.trump_suit) > trick_winner_card.calculate_card_points(self.trump_suit):
-                            trick_winner = player
-                            trick_winner_card = card
-                        else: pass
-                    else:
-                        # Non-trump card played, check if it is higher than the current trick winner and that the winning card is not a trump card
-                        if card.calculate_card_points(self.trump_suit) > trick_winner_card.calculate_card_points(self.trump_suit) and not self.is_trump(trick_winner_card):
-                            trick_winner = player
-                            trick_winner_card = card
-                        else: pass
-                else:
-                    # Player has no card of the led suit, they may play any card
-                    if self.is_trump(card):
-                        # Trump card played, check if the curret winnig card is trump and which is higher
-                        if not self.is_trump(trick_winner_card):
-                            trick_winner = player
-                            trick_winner_card = card
-                        elif card.calculate_card_points(self.trump_suit) > trick_winner_card.calculate_card_points(self.trump_suit):
-                            trick_winner = player
-                            trick_winner_card = card
+                # This is not the first card played in the trick.
+                trick, trick_points, trick_winner, trick_winner_card = (
+                    self.playing_card(
+                        player,
+                        trick,
+                        led_suit,
+                        trick_points,
+                        trick_winner,
+                        trick_winner_card))
         print(f'{trick_winner} has won the trick with {trick_winner_card}.')
         print(f'{trick_winner} has won {trick_points} points.')
-        self.players[self.players.index(trick_winner)].tricks_taken.append(trick)
+        self.players[
+            self.players.index(trick_winner)].tricks_taken.append(trick)
         return trick_winner
+
+    def playing_card(
+            self,
+            player: Player,
+            trick: PileOfCard,
+            led_suit: str,
+            trick_points: int,
+            trick_winner: Player,
+            trick_winner_card: Card):
+        """Play a card for a player in a trick.
+
+        Parameters:
+        player (Player): The player playing the card.
+        trick (tuple): The current trick.
+        led_suit (str): The suit of the first card played in the trick.
+        trick_points (int): The points of the trick.
+        trick_winner (Player): The player who has won the trick so far.
+        trick_winner_card (Card): The card played by the trick winner.
+        """
+        print(f'The current trick is: {[trick[0]]}, \
+            the led suit is {led_suit}, \
+            and the trick points are {trick_points}.')
+        print(f'The current trick winner is {trick_winner} \
+            with the card {trick_winner_card}.')
+        # The player must follow suit if they have a card of the led
+        # suit
+        if led_suit in [card.suit for card in player.hand]:
+            if led_suit == self.trump_suit:
+                # Create a list of trump cards in the player's hand.
+                trump_cards = []
+                for card in player.hand:
+                    if card.suit == self.trump_suit:
+                        trump_cards.append(card)
+                if any([card.points(self.trump_suit)
+                        > trick_winner_card.points(
+                        self.trump_suit) for card in trump_cards]):
+                    # If the player has a trump card that is higher
+                    # than the current trick winner's card, they must
+                    # play it
+                    hand = [
+                        card for card in player.hand
+                        if ((card.suit == self.trump_suit)
+                            and (card.points(
+                                self.trump_suit)
+                            > trick_winner_card.points(
+                                self.trump_suit)))]
+                    card = player.play_card(hand, "You must play a \
+                        trump card that is higher than the current \
+                            trick winner's card")
+                else:
+                    # If the player has no trump card that is higher
+                    # than the current trick winner's card,
+                    # they can play any trump card
+                    hand = [card for card in player.hand if (
+                        card.suit == self.trump_suit)]
+                    msg = 'You must play a trump card.'
+                    card = player.play_card(hand, msg)
+            else:
+                # The player has a card of the led suit, so they must
+                # play a card of the led suit
+                hand = [card for card in player.hand if card.suit == led_suit]
+                msg = f'You must play a {led_suit}.'
+                card = player.play_card(hand, msg)
+
+        elif self.trump_suit in [card.suit for card in player.hand]:
+            if player.teammate == trick_winner:
+                # The player can play any card he wants if he has no card of
+                # the led suit even if he has a trump card only if he's
+                # teammate is the player which are currently winning the trick
+                msg = f'You have no {led_suit}s. Your teammate is currently \
+                    winning the trick. You can play any card you want.'
+                card = player.play_card(player.hand, msg)
+            else:
+                # The player has no card of the led suit, but they have a
+                # trump card, so they must play a trump card
+                hand = [card for card in player.hand if (
+                    card.suit == self.trump_suit)]
+                msg = f'You have no {led_suit}s. You must play a trump card.'
+                card = player.play_card(hand, msg)
+        else:
+            # The player has no card of the led suit or a trump card, so they
+            # may play any card
+            msg = f'You have no {led_suit}s or trump cards.'
+            card = player.play_card(player.hand, msg)
+
+        trick[0].append(card)
+        trick_points += card.points(self.trump_suit)
+
+        if card.suit == led_suit:
+            if self.is_trump(card):
+                # Trump card played, check if it is higher than the current
+                # trick winner
+                if (card.points(self.trump_suit)
+                        > trick_winner_card.points(self.trump_suit)):
+                    trick_winner = player
+                    trick_winner_card = card
+            else:
+                # Non-trump card played, check if it is higher than the
+                # current trick winner and that the winning card is not a
+                # trump card
+                is_higher = (
+                    card.points(self.trump_suit)
+                    > trick_winner_card.points(self.trump_suit))
+                if is_higher and not self.is_trump(trick_winner_card):
+                    trick_winner = player
+                    trick_winner_card = card
+        else:
+            # Player has no card of the led suit, they may play any card
+            if self.is_trump(card):
+                # Trump card played, check if the curret winnig card is trump
+                # and which is higher
+                if not self.is_trump(trick_winner_card):
+                    trick_winner = player
+                    trick_winner_card = card
+                elif (card.points(self.trump_suit)
+                        > trick_winner_card.points(self.trump_suit)):
+                    trick_winner = player
+                    trick_winner_card = card
+        return trick, trick_points, trick_winner, trick_winner_card
 
     def is_trump(self, card):
         """Return True if the card is a trump card, False otherwise."""
@@ -272,14 +353,20 @@ class BeloteGame:
         """Calculate the points scored by each team in the current hand."""
         points = {player: 0 for player in self.players}
         # The last trick is 10 points worth
-        if len(self.players[0].tricks_taken) + len(self.players[2].tricks_taken) == 8:
+        player1 = self.players[0]
+        player2 = self.players[1]
+        player3 = self.players[2]
+        player4 = self.players[3]
+        if len(player1.tricks_taken) + len(player3.tricks_taken) == 8:
             # Team 1 (players 0 and 2) won all the tricks
-            points[self.players[0]] += 250  # Capot bonus
-            print(f'Team 1 (players {self.players[0]} and {self.players[2]}) won all the tricks. They get a capot bonus of 250 points.')
-        elif len(self.players[1].tricks_taken) + len(self.players[1].tricks_taken) == 8:
+            points[player1] += 250  # Capot bonus
+            print(f'Team 1 (players {player1} and {player3}) won all the \
+                tricks. They get a capot bonus of 250 points.')
+        elif len(player2.tricks_taken) + len(player2.tricks_taken) == 8:
             # Team 2 (players 1 and 3) won all the tricks
-            points[self.players[1]] += 250  # Capot bonus
-            print(f'Team 2 (players {self.players[1]} and {self.players[3]}) won all the tricks. They get a capot bonus of 250 points.')
+            points[player2] += 250  # Capot bonus
+            print(f'Team 2 (players {player2} and {player4}) won all the \
+                tricks. They get a capot bonus of 250 points.')
         # Check for belote bonus
         for player in self.players:
             if player.belote():
@@ -289,8 +376,9 @@ class BeloteGame:
         for player in self.players:
             # Give the 10 points of the last trick
             if 8 in [trick[1] for trick in player.tricks_taken]:
-                print(f'{player} has taken the last trick: he gains the 10 points bonus.')
-                points[player] += 10 
+                print(f'{player} has taken the last trick: he gains the 10 \
+                    points bonus.')
+                points[player] += 10
             for trick in player.tricks_taken:
                 points[player] += trick[0].calculate_points(self.trump_suit)
             print(f'{player} has scored {points[player]} points.')

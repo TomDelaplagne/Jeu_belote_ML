@@ -20,7 +20,7 @@ class Card:
         self.suit = suit
         self.rank = rank
 
-    def calculate_card_points(self, trump_suit: str) -> int:
+    def points(self, trump_suit: str) -> int:
         """
         Calculate the points scored by a single card in the Belote game.
 

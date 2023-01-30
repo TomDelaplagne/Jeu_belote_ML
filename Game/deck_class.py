@@ -1,4 +1,4 @@
-"""This module contains the Deck class, which is used to create a deck of cards and deal them to players."""
+"""This module contains the Deck class and PileOfCard."""
 
 import random
 
