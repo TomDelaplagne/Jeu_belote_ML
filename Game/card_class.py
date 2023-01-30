@@ -1,7 +1,10 @@
+from dataclasses import dataclass
+
+@dataclass(frozen=True, eq=True, slots=True, repr=False) # frozen=True: immutable
 class Card:
-    def __init__(self, suit, rank):
-        self.suit = suit
-        self.rank = rank
+    """A class to represent a single card in the Belote game."""
+    suit: str # Spades, Hearts, Diamonds, Clubs
+    rank: str # Ace, 2, 3, 4, 5, 6, 7, 8, 9, 10, Jack, Queen, King
 
     def calculate_card_points(self, trump_suit):
         """Calculate the points scored by a single card in the Belote game."""
@@ -14,18 +17,3 @@ class Card:
 
     def __repr__(self):
         return f"{self.rank} of {self.suit}"
-
-    def __eq__(self, p2): # p1 == p2
-        if p2 is None:
-            return False
-        return self.suit == p2.suit and self.rank == p2.rank
-
-    # def __lt__(self, p2):
-    #     if p2 is None:
-    #         return False
-    #     return self.calculate_card_points(trump_suit) < p2.calculate_card_points(trump_suit)
-
-    # def __gt__(self, p2):
-    #     if p2 is None:
-    #         return False
-    #     return self.calculate_card_points(trump_suit) > p2.calculate_card_points(trump_suit)

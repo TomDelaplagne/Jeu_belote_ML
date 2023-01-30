@@ -1,13 +1,14 @@
 from card_class import Card
 from deck_class import PileOfCard
+from dataclasses import dataclass, field
 
+@dataclass(repr=False, slots=True)
 class Player:
-    def __init__(self, name : str, teammate=None):
-        self.name = name
-        self.hand : PileOfCard
-        self.tricks_taken = []
-        self.teammate = teammate
-        self.trump_suit = None
+    name: str
+    teammate: "Player" = field(default=None)
+    hand: PileOfCard = field(default_factory=PileOfCard)
+    tricks_taken: list = field(repr=False, default_factory=list)
+    trump_suit: str = field(default=None, repr=False)
 
     def declare_trump(self, trump_suit):
         self.trump_suit = trump_suit
