@@ -1,0 +1,182 @@
+{
+    "players": [
+        {
+            "name": "Alice",
+            "teammate": "Charlie",
+            "hand": [],
+            "tricks_taken": [
+                [
+                    {
+                        "suit": "Diamonds",
+                        "rank": "10"
+                    },
+                    {
+                        "suit": "Diamonds",
+                        "rank": "Ace"
+                    },
+                    {
+                        "suit": "Diamonds",
+                        "rank": "King"
+                    },
+                    {
+                        "suit": "Hearts",
+                        "rank": "7"
+                    }
+                ],
+                [
+                    {
+                        "suit": "Diamonds",
+                        "rank": "Queen"
+                    },
+                    {
+                        "suit": "Diamonds",
+                        "rank": "Jack"
+                    },
+                    {
+                        "suit": "Clubs",
+                        "rank": "9"
+                    },
+                    {
+                        "suit": "Diamonds",
+                        "rank": "8"
+                    }
+                ],
+                [
+                    {
+                        "suit": "Diamonds",
+                        "rank": "9"
+                    },
+                    {
+                        "suit": "Hearts",
+                        "rank": "8"
+                    },
+                    {
+                        "suit": "Clubs",
+                        "rank": "7"
+                    },
+                    {
+                        "suit": "Diamonds",
+                        "rank": "7"
+                    }
+                ]
+            ],
+            "trump_suit": null
+        },
+        {
+            "name": "Bob",
+            "teammate": "David",
+            "hand": [],
+            "tricks_taken": [
+                [
+                    {
+                        "suit": "Spades",
+                        "rank": "9"
+                    },
+                    {
+                        "suit": "Spades",
+                        "rank": "Jack"
+                    },
+                    {
+                        "suit": "Spades",
+                        "rank": "Ace"
+                    },
+                    {
+                        "suit": "Spades",
+                        "rank": "10"
+                    }
+                ],
+                [
+                    {
+                        "suit": "Spades",
+                        "rank": "King"
+                    },
+                    {
+                        "suit": "Spades",
+                        "rank": "Queen"
+                    },
+                    {
+                        "suit": "Spades",
+                        "rank": "8"
+                    },
+                    {
+                        "suit": "Hearts",
+                        "rank": "Queen"
+                    }
+                ]
+            ],
+            "trump_suit": null
+        },
+        {
+            "name": "Charlie",
+            "teammate": "Alice",
+            "hand": [],
+            "tricks_taken": [
+                [
+                    {
+                        "suit": "Hearts",
+                        "rank": "King"
+                    },
+                    {
+                        "suit": "Hearts",
+                        "rank": "Ace"
+                    },
+                    {
+                        "suit": "Hearts",
+                        "rank": "10"
+                    },
+                    {
+                        "suit": "Clubs",
+                        "rank": "Queen"
+                    }
+                ]
+            ],
+            "trump_suit": null
+        },
+        {
+            "name": "David",
+            "teammate": "Bob",
+            "hand": [],
+            "tricks_taken": [
+                [
+                    {
+                        "suit": "Hearts",
+                        "rank": "Jack"
+                    },
+                    {
+                        "suit": "Spades",
+                        "rank": "7"
+                    },
+                    {
+                        "suit": "Clubs",
+                        "rank": "Jack"
+                    },
+                    {
+                        "suit": "Hearts",
+                        "rank": "9"
+                    }
+                ],
+                [
+                    {
+                        "suit": "Clubs",
+                        "rank": "Ace"
+                    },
+                    {
+                        "suit": "Clubs",
+                        "rank": "8"
+                    },
+                    {
+                        "suit": "Clubs",
+                        "rank": "King"
+                    },
+                    {
+                        "suit": "Clubs",
+                        "rank": "10"
+                    }
+                ]
+            ],
+            "trump_suit": null
+        }
+    ],
+    "deck": [],
+    "trump_suit": "Spades"
+}

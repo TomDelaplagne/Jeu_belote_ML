@@ -4,11 +4,14 @@ from deck_class import PileOfCard
 
 class BeloteGame:
     def __init__(self, players: list[Player]):
-        self.players = players
+        self.players: list[Player] = players
         for player in players:
-            player.add_teammate(players[(players.index(player)+2)%4])
+            player.add_teammate(self.players[(self.players.index(player)+2)%4])
         self.deck = Deck()
         self.trump_suit = None
+
+    def get_dict(self) -> dict:
+        return {"players": [player.get_dict() for player in self.players], "deck": self.deck.get_dict(), "trump_suit": self.trump_suit}
 
     def play(self):
         """Shuffles and deals cards, starts bidding, plays tricks, calculates points, and prints results."""
@@ -19,21 +22,16 @@ class BeloteGame:
         for i, hand in enumerate(hands):
             self.players[i].hand = hand
 
+
         # Start the bidding
-        (declarer, bid) = self.start_bidding()
+        bid = self.start_bidding()
 
-        # declare_trump for players
-        for player in self.players:
-            player.declare_trump(self.trump_suit)
-
-        try :
-            type(declarer) == Player
-        except NameError:
+        if bid is None:
             # All players have passed, restart the game
             return
 
         # Declare the trump suit
-        self.trump_suit = self.declare_trump(declarer)
+        self.trump_suit = bid.trump
 
         # Play the tricks
         trick_winner : Player = None
@@ -44,18 +42,23 @@ class BeloteGame:
         points = self.calculate_points()
 
         # Print the results
-        self.print_results(points, bid, declarer)
+        points = self.print_results(points, bid)
+        print(points)
+
+        points = {str(player): points[player] for player in self.players}
+
+        return points
 
     def start_bidding(self):
         """Prompt each player to bid or pass until a bid is accepted or all players pass."""
         print("Starting the bidding...")
         current_player = self.players[0]
-        highest_bid = 70
+        highest_bid: Player.Bid = Player.Bid(None, 70, None)
         highest_bidder : Player = None
         while True:
             current_player.hand = self.sort_cards(current_player.hand)
-            bid = current_player.bid(highest_bid)
-            if bid == None:
+            current_bid = current_player.bid(highest_bid.bid)
+            if current_bid == None:
                 if highest_bidder is None and current_player == self.players[-1]:
                     # All players have passed and no bids have been placed, restart the bidding process
                     print('All players have passed. Restarting the game...')
@@ -65,18 +68,18 @@ class BeloteGame:
                 else:
                     if (highest_bidder is not None) and (current_player == self.players[(self.players.index(highest_bidder)+3)%4]):
                         # All players have passed, the highest bidder wins the bid
-                        print(f"{highest_bidder} has won the bid with a bid of {highest_bid}.")
-                        return (highest_bidder, highest_bid)
-            elif int(bid) > highest_bid:
-                highest_bid = int(bid)
-                highest_bidder = current_player
-                if bid == 250:
-                    print(f"{highest_bidder} has won the bid with a capot.")
-                    return (highest_bidder, highest_bid)
+                        print(f"{highest_bid.player} has won the bid with a bid of {highest_bid.bid}.")
+                        return highest_bid
+            elif current_bid.bid > highest_bid.bid:
+                highest_bid = current_bid
+                highest_bidder = highest_bid.player
+                if current_bid.bid == 250:
+                    print(f"{current_bid.player} has won the bid with a capot.")
+                    return highest_bid
             else:
                 print("Invalid bid. Please enter a higher bid or 'p' to pass.")
             current_player = self.players[(self.players.index(current_player) + 1) % len(self.players)]
-        return (-1, -1)
+        return None
 
     def sort_cards(self, cards, trump_suit=None):
         """Sort a list of Card objects by suit and rank.
@@ -123,7 +126,6 @@ class BeloteGame:
             trump_suit = input()
         print(f"The trump suit is {trump_suit}.")
         return trump_suit
-
 
     def play_trick(self, trick_num, trick_winner=None):
         """Play a trick of the game."""
@@ -227,40 +229,53 @@ class BeloteGame:
             # Team 2 (players 1 and 3) won all the tricks
             points[self.players[1]] += 250  # Capot bonus
             print(f"Team 2 (players {self.players[1]} and {self.players[3]}) won all the tricks. They get a capot bonus of 250 points.")
+        else:
+            # Calculate tricks_taken points
+            for player in self.players:
+                # Give the 10 points of the last trick
+                if 8 in [trick[1] for trick in player.tricks_taken]:
+                    print(f"{player} has taken the last trick: he gains the 10 points bonus.")
+                    points[player] += 10 
+                for trick in player.tricks_taken:
+                    # Give the points of the other tricks taken by the player arronding to the nearest ten
+                    points[player] += trick[0].calculate_points(self.trump_suit)
+                print(f"{player} has scored {points[player]} points.")
         # Check for belote bonus
-        # TODO : la ca marche pas du tout j'ai juré
         for player in self.players:
-            if "King" in [card.rank for card in player.hand if self.is_trump(card)] and "Queen" in [card.rank for card in player.hand if self.is_trump(card)]:
+            if "King" in [card.rank for card in player.hand_at_beginning if self.is_trump(card)] and "Queen" in [card.rank for card in player.hand_at_beginning if self.is_trump(card)]:
                 points[player] += 20  # Belote bonus
                 print(f"{player} has a belote. They get a bonus of 20 points.")
-        # Calculate tricks_taken points
-        for player in self.players:
-            # Give the 10 points of the last trick
-            if 8 in [trick[1] for trick in player.tricks_taken]:
-                print(f"{player} has taken the last trick: he gains the 10 points bonus.")
-                points[player] += 10 
-            for trick in player.tricks_taken:
-                points[player] += trick[0].calculate_points(self.trump_suit)
-            print(f"{player} has scored {points[player]} points.")
+        points = {player: round(points[player], -1) for player in self.players}
         return points
 
-    def print_results(self, points, bid, declarer):
+    def print_results(self, points, bid):
         """Print the results of the current hand."""
         points = self.calculate_points()
-        print(f"The bid was {bid} points with the trump {self.trump_suit}. The declarer was {declarer}.")
+        print(f"The bid was {bid.bid} points with the trump {self.trump_suit}. The declarer was {bid.player}.")
         team1_points = points[self.players[0]] + points[self.players[2]]
         team2_points = points[self.players[1]] + points[self.players[3]]
         print(f"Team 1 (players {self.players[0]} and {self.players[2]}) scored {team1_points} points.")
         print(f"Team 2 (players {self.players[1]} and {self.players[3]}) scored {team2_points} points.")
-        if declarer in [self.players[0], self.players[2]]:
+        if bid.player in [self.players[0], self.players[2]]:
             # Team 1 is the declarer
-            if team1_points >= bid:
+            if team1_points >= bid.bid:
                 print(f"Team 1 (players {self.players[0]} and {self.players[2]}) has won the hand.")
+                points[self.players[0]] += bid.bid
             else:
-                print(f"Team 2 (players {self.players[1]} and {self.players[3]}) has won the hand.")
+                print(f"Team 2 (players {self.players[1]} and {self.players[3]}) has won the hand. Team 1 has fallen.")
+                points[self.players[1]] += 160
         else:
             # Team 2 is the declarer
-            if team2_points >= bid:
+            if team2_points >= bid.bid:
                 print(f"Team 2 (players {self.players[1]} and {self.players[3]}) has won the hand.")
+                points[self.players[1]] += bid.bid
             else:
-                print(f"Team 1 (players {self.players[0]} and {self.players[2]}) has won the hand.")
+                print(f"Team 1 (players {self.players[0]} and {self.players[2]}) has won the hand. Team 2 has fallen.")
+                points[self.players[0]] += 160
+        for player in self.players[:2]:
+            partner = self.players[(self.players.index(player)+2)%4]
+            points[player] += points[partner]
+        for player in self.players[2:]:
+            partner = self.players[(self.players.index(player)+2)%4]
+            points[player] = points[partner]
+        return points

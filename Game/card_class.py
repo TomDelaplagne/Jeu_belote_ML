@@ -17,3 +17,6 @@ class Card:
 
     def __repr__(self):
         return f"{self.rank} of {self.suit}"
+
+    def get_dict(self) -> dict:
+        return {"suit": self.suit, "rank": self.rank}

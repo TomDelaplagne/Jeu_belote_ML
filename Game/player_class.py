@@ -2,13 +2,21 @@ from card_class import Card
 from deck_class import PileOfCard
 from dataclasses import dataclass, field
 
+from typing import TypeVar
+
+PileOfCardType = TypeVar("PileOfCardType", bound="PileOfCard")
+
 @dataclass(repr=False, slots=True)
 class Player:
     name: str
     teammate: "Player" = field(default=None)
-    hand: PileOfCard = field(default_factory=PileOfCard)
-    tricks_taken: list = field(repr=False, default_factory=list)
+    hand: PileOfCardType = field(default_factory=PileOfCard)
+    hand_at_beginning: PileOfCardType = field(default_factory=PileOfCard)
+    tricks_taken: list[tuple] = field(repr=False, default_factory=list)
     trump_suit: str = field(default=None, repr=False)
+
+    def __post_init__(self):
+        self.hand_at_beginning = self.hand.copy()
 
     def declare_trump(self, trump_suit):
         self.trump_suit = trump_suit
@@ -32,7 +40,7 @@ class Player:
             played_card = input()
             try :
                 card = Card(*played_card.split(" of ")[::-1])
-            except ValueError:
+            except :
                 print("Invalid card. Try again.")
                 continue
             if (card not in hand):
@@ -40,29 +48,49 @@ class Player:
         self.hand.remove(card)
         return card
 
+    class Bid:
+        def __init__(self, player: "Player", bid: int, trump: str):
+            self.player: Player = player
+            self.bid: int = bid
+            self.trump: str = trump # Spades, Hearts, Diamonds, Clubs
+
     def bid(self, higgest_bid):
         print(f"{self}, it is your turn to bid or pass. Your hand is: {self.hand}")
         bid = None
         while bid not in range(higgest_bid+10, 180, 10):
             print(f"Enter your bid between {higgest_bid+10} and 180 or 'CAPOT', press 'p' to pass:")
             bid = input()
+            print(f'You entered {bid}, which trump suit do you want? (Spades, Hearts, Diamonds, Clubs)')
+            trump = input()
+            if trump not in ["Spades", "Hearts", "Diamonds", "Clubs"]:
+                print("Invalid trump suit. Try again.")
+                continue
             if bid == "p":
                 print("You have passed.")
                 return None
             if bid == "CAPOT":
-                return 250
+                return self.Bid(self, 250, trump)
             try:
                 bid = int(bid)
             except ValueError:
                 print("Invalid bid. Try again.")
                 continue
-        return bid
+        return self.Bid(self, bid, trump)
 
     def take_trick(self, trick):
         self.tricks_taken.append(trick)
 
+    def get_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "teammate": self.teammate.name if self.teammate else None,
+            "hand": self.hand,
+            "tricks_taken": [trick[0].get_dict() for trick in self.tricks_taken],
+            "trump_suit": self.trump_suit
+        }
 
 class Dumb_Player(Player):
+    """A player that plays the first card in its hand"""
     def __init__(self, name : str, teammate=None):
         super().__init__(name, teammate)
 
@@ -74,14 +102,13 @@ class Dumb_Player(Player):
 
     def play_card(self, hand, msg):
         print(msg)
-        # card = max(hand)
         card = hand[0]
         self.hand.remove(card)
         return card
 
     def bid(self, higgest_bid):
         if higgest_bid == 70:
-            return 80
+            return self.Bid(self, 80, "Spades")
         else:
             return None
 
@@ -106,7 +133,7 @@ class Smart_Player(Player):
 
     def bid(self, higgest_bid):
         if higgest_bid == 70:
-            return 80
+            return self.Bid(self, 80, "Spades")
         else:
             return None
 
