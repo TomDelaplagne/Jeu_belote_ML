@@ -1,1 +1,25 @@
-<mxfile host="app.diagrams.net" modified="2023-02-01T17:06:32.237Z" agent="5.0 (X11; Ubuntu)" version="20.7.3" etag="hFzCEvIcJY67Zm5KlIDU" type="github"><diagram id="ag1STetMlJgJ623F0-hb">UzV2zq1wL0osyPDNT0nNUTV2VTV2LsrPL4GwciucU3NyVI0MMlNUjV1UjYwMgFjVyA2HrCFY1qAgsSg1rwSLBiADYTaQg2Y1AA==</diagram></mxfile>
+<mxfile host="app.diagrams.net" modified="2023-02-01T17:22:40.083Z" agent="5.0 (X11; Ubuntu)" version="20.7.3" etag="RrmDcJ0pe2OBQlf61Cg4" type="github">
+  <diagram id="P9NDywGPbr0W-xS4hxjc" name="Page-1">
+    <mxGraphModel dx="1369" dy="647" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="vXzIw3CqGGfsxf80SK9W-9" value="State of cards w/out trump card" style="swimlane;whiteSpace=wrap;html=1;startSize=23;" vertex="1" parent="1">
+          <mxGeometry x="30" y="40" width="530" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="vXzIw3CqGGfsxf80SK9W-11" value="Array 3x8" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="vXzIw3CqGGfsxf80SK9W-9">
+          <mxGeometry x="82.25" y="30" width="70" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="vXzIw3CqGGfsxf80SK9W-12" value="" style="shape=mxgraph.rack.oracle.sun_storage_2500-m2_array;html=1;labelPosition=right;align=left;spacingLeft=15;dashed=0;shadow=0;fillColor=#ffffff;" vertex="1" parent="vXzIw3CqGGfsxf80SK9W-9">
+          <mxGeometry x="36.75" y="60" width="161" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="vXzIw3CqGGfsxf80SK9W-14" value="&lt;div align=&quot;left&quot;&gt;Each line represent one color sort by value except from trump cards. Each card is False if we &lt;br&gt;&lt;/div&gt;&lt;div align=&quot;left&quot;&gt;don&#39;t know who have the card and is the index of the player who played it or have it otherwise.&lt;br&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=1;points=[];strokeColor=none;fillColor=none;movable=1;rotatable=1;deletable=1;editable=1;connectable=1;" vertex="1" parent="vXzIw3CqGGfsxf80SK9W-9">
+          <mxGeometry x="10" y="100" width="520" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vXzIw3CqGGfsxf80SK9W-10" value="State of trump card" style="swimlane;whiteSpace=wrap;html=1;startSize=23;" vertex="1" parent="1">
+          <mxGeometry x="630" y="40" width="200" height="200" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
