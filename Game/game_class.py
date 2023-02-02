@@ -1,13 +1,14 @@
 from player_class import Player
 from deck_class import Deck
 from deck_class import PileOfCard
+from bid_class import Bid
 
 class BeloteGame:
     def __init__(self, players: list[Player]):
         self.players: list[Player] = players
         for player in players:
             player.add_teammate(self.players[(self.players.index(player)+2)%4])
-        self.deck = Deck()
+        self.deck: Deck
         self.trump_suit = None
 
     def get_dict(self) -> dict:
@@ -17,6 +18,7 @@ class BeloteGame:
         """Shuffles and deals cards, starts bidding, plays tricks, calculates points, and prints results."""
         
         # Shuffle and deal cards
+        self.deck = Deck()
         self.deck.shuffle()
         hands = [self.deck.deal(8) for _ in self.players]
         for i, hand in enumerate(hands):
@@ -53,11 +55,11 @@ class BeloteGame:
         """Prompt each player to bid or pass until a bid is accepted or all players pass."""
         print("Starting the bidding...")
         current_player = self.players[0]
-        highest_bid: Player.Bid = Player.Bid(None, 70, None)
+        highest_bid: Bid = Bid(None, 70, None)
         highest_bidder : Player = None
         while True:
             current_player.hand = self.sort_cards(current_player.hand)
-            current_bid = current_player.bid(highest_bid.bid)
+            current_bid = current_player.bid(highest_bid)
             if current_bid == None:
                 if highest_bidder is None and current_player == self.players[-1]:
                     # All players have passed and no bids have been placed, restart the bidding process

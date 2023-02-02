@@ -1,6 +1,7 @@
 from card_class import Card
 from deck_class import PileOfCard
 from dataclasses import dataclass, field
+from bid_class import Bid
 
 from typing import TypeVar
 
@@ -48,17 +49,12 @@ class Player:
         self.hand.remove(card)
         return card
 
-    class Bid:
-        def __init__(self, player: "Player", bid: int, trump: str):
-            self.player: Player = player
-            self.bid: int = bid
-            self.trump: str = trump # Spades, Hearts, Diamonds, Clubs
-
-    def bid(self, higgest_bid):
+    def bid(self, higgest_bid: Bid):
         print(f"{self}, it is your turn to bid or pass. Your hand is: {self.hand}")
         bid = None
-        while bid not in range(higgest_bid+10, 180, 10):
-            print(f"Enter your bid between {higgest_bid+10} and 180 or 'CAPOT', press 'p' to pass:")
+        higgest_bid_amount = higgest_bid.bid
+        while bid not in range(higgest_bid_amount+10, 180, 10):
+            print(f"Enter your bid between {higgest_bid_amount+10} and 180 or 'CAPOT', press 'p' to pass:")
             bid = input()
             print(f'You entered {bid}, which trump suit do you want? (Spades, Hearts, Diamonds, Clubs)')
             trump = input()
@@ -69,13 +65,13 @@ class Player:
                 print("You have passed.")
                 return None
             if bid == "CAPOT":
-                return self.Bid(self, 250, trump)
+                return Bid(self, 250, trump)
             try:
                 bid = int(bid)
             except ValueError:
                 print("Invalid bid. Try again.")
                 continue
-        return self.Bid(self, bid, trump)
+        return Bid(self, bid, trump)
 
     def take_trick(self, trick):
         self.tricks_taken.append(trick)
@@ -88,14 +84,14 @@ class Player:
             "tricks_taken": [trick[0].get_dict() for trick in self.tricks_taken],
             "trump_suit": self.trump_suit
         }
+    
+    def __hash__(self):
+        return hash(self.name)
 
 class Dumb_Player(Player):
     """A player that plays the first card in its hand"""
     def __init__(self, name : str, teammate=None):
         super().__init__(name, teammate)
-
-    def __hash__(self):
-        return hash(self.name)
 
     def __repr__(self):
         return super().__repr__() + " (Dumb)"
@@ -106,41 +102,9 @@ class Dumb_Player(Player):
         self.hand.remove(card)
         return card
 
-    def bid(self, higgest_bid):
-        if higgest_bid == 70:
-            return self.Bid(self, 80, "Spades")
+    def bid(self, higgest_bid: Bid):
+        higgest_bid_amount = higgest_bid.bid
+        if higgest_bid_amount == 70:
+            return Bid(self, 80, "Spades")
         else:
             return None
-
-
-class Smart_Player(Player):
-    """A player that plays the best card in its hand."""
-
-    def __init__(self, name : str, teammate=None):
-        super().__init__(name, teammate)
-
-    def __hash__(self):
-        return hash(self.name)
-
-    def __repr__(self):
-        return super().__repr__() + " (Smart)"
-
-    def play_card(self, hand, msg):
-        print(msg)
-        card = self.maxCard(hand, self.trump_suit)
-        self.hand.remove(card)
-        return card
-
-    def bid(self, higgest_bid):
-        if higgest_bid == 70:
-            return self.Bid(self, 80, "Spades")
-        else:
-            return None
-
-    def maxCard(self, hand, trump_suit):
-        """Return the card with the highest value in the hand."""
-        max_card = hand[0]
-        for card in hand:
-            if card.calculate_card_points(trump_suit) > max_card.calculate_card_points(trump_suit):
-                max_card = card
-        return max_card
