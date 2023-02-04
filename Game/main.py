@@ -12,20 +12,23 @@ import os, sys
 from scipy.optimize import minimize
 
 
+def progress_callback(x):
+    print("Current value of the objective function:", cost_function(x))
+
 def cost_function(matrices):
     # Your cost function implementation here
     Lancelot = Player_Neural("Lancelot", strategy=matrices)
     players: list[Player] = [Lancelot, Dumb_Player("Bob"), Dumb_Player("Charlie"), Dumb_Player("David")]
     game = BeloteGame(players)
-    cost = 0
-    NB_PARTIES = 1_000
+    NB_PARTIES = 500
+    results = []
     with alive_bar(NB_PARTIES) as bar:
         for _ in range(NB_PARTIES):
             with redirect_stdout(open(os.devnull, "w")):
                 points = game.play()
             bar()
-    cost += points[str(Lancelot)]
-    return -cost
+            results.append(points[str(Lancelot)])
+    return -np.mean(results)
 
 
 
@@ -64,7 +67,7 @@ def main(args=None):
         matrices = [matrix1, matrix2, matrix3]
 
     x0 = np.concatenate([matrices[0].flatten(), matrices[1].flatten(), matrices[2].flatten()])
-    res = minimize(cost_function, x0, method='BFGS')
+    res = minimize(cost_function, x0, method='BFGS', callback=progress_callback, options={'disp': True})
     print(res)
     np.save("strategy.npy", res)
 
