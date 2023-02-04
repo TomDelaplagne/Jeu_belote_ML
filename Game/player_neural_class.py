@@ -2,17 +2,48 @@ from card_class import Card
 from player_class import Player
 import numpy as np
 from bid_class import Bid
-import json
 
 class Player_Neural(Player):
-    def __init__(self, name : str, teammate=None):
+    def __init__(self, name : str, teammate=None, strategy=None):
         super().__init__(name, teammate)
-        self.strategy = None
+        concatenated_array = strategy
+        matrix1_size = 32 * 16
+        matrix2_size = 16 * 16
+        matrix3_size = 16 * 1
+
+        matrix1 = concatenated_array[:matrix1_size].reshape(32, 16)
+        matrix2 = concatenated_array[matrix1_size:matrix1_size + matrix2_size].reshape(16, 16)
+        matrix3 = concatenated_array[matrix1_size + matrix2_size:].reshape(16, 1)
+
+        matrices = [matrix1, matrix2, matrix3]
+        self.strategy = matrices
+
+    def __repr__(self):
+        return super().__repr__() + " (Neural)"
 
     def play_card(self, hand, msg):
-        card = hand[0]
-        self.hand.remove(card)
-        return card
+        # Neural network here
+        if self.strategy == None:
+            return hand[0]
+        
+        #create a numpy vector of the hand of the player
+        hand_vector = np.zeros((32,1))
+        for card in hand:
+            suits = ["Spades", "Hearts", "Diamonds", "Clubs"]
+            non_trump = ["Ace", "10", "King", "Queen", "Jack", "9", "8", "7"]
+            trump = {"Jack", "9", "Ace", "10", "King", "Queen", "8", "7"}
+            if card.suit == self.trump_suit:
+                hand_vector[trump.index(card.rank) + 8 * suits.index(card.suit)] = 1
+            else:
+                hand_vector[non_trump.index(card.rank) + 8 * suits.index(card.suit)] = 1
+
+        first_layer_network = np.matmul(hand_vector.T, self.strategy[0])
+
+        second_layer_network = np.matmul(first_layer_network, self.strategy[1])
+
+        last_layer = np.matmul(second_layer_network, self.strategy[2])
+
+        return hand[abs(round(np.matmul(second_layer_network, self.strategy[2])[0, 0]))%len(hand)]
 
     def bid(self, highest_bid: Bid) -> Bid or None:
         if highest_bid.bid <= 100 or highest_bid is None:
@@ -135,5 +166,5 @@ class Player_Neural(Player):
             "trump_suit": self.trump_suit
         }
     
-    # def __del__(self):
-    #     print(f"{self} est mort")
+    def __del__(self):
+        print(f"{self} est mort")

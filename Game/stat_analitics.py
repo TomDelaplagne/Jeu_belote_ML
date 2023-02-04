@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 
 df = pd.read_csv('history.csv', index_col=0)
 
+# keep only the 2 first columns
+df = df.iloc[:, :2]
+
 for column in df.columns:
     plt.plot(df.index, df[column], label=column)
 

@@ -281,3 +281,6 @@ class BeloteGame:
             partner = self.players[(self.players.index(player)+2)%4]
             points[player] = points[partner]
         return points
+
+    def __del__(self):
+        print("The game has been deleted.")
