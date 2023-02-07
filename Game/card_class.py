@@ -1,24 +1,11 @@
-"""This module contains the Card class that represents a single card."""
+from dataclasses import dataclass
 
-
+@dataclass(frozen=True, eq=True, slots=True, repr=False) # frozen=True: immutable
 class Card:
-    """
-    A class representing a single card in the Belote game.
+    """A class to represent a single card in the Belote game."""
+    suit: str # Spades, Hearts, Diamonds, Clubs
+    rank: str # Ace, 2, 3, 4, 5, 6, 7, 8, 9, 10, Jack, Queen, King
 
-    This class have methods for calculating the card points and comparing with
-    other cards.
-    """
-
-    def __init__(self, suit: str, rank: str):
-        """
-        Initialize a card with a suit and a rank.
-
-        Parameters:
-        suit (str): The suit of the card.
-        rank (str): The rank of the card.
-        """
-        self.suit = suit
-        self.rank = rank
 
     def points(self, trump_suit: str) -> int:
         """
@@ -59,8 +46,13 @@ class Card:
         """Return a string representation of a card."""
         return f'{self.rank} of {self.suit}'
 
+
+    def get_dict(self) -> dict:
+        return {"suit": self.suit, "rank": self.rank}
+
     def __eq__(self, p2) -> bool:
         """Return True if two cards are equal."""
         if p2 is None:
             return False
         return self.suit == p2.suit and self.rank == p2.rank
+

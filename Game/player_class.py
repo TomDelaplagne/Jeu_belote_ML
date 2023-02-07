@@ -3,37 +3,23 @@
 from card_class import Card
 
 from deck_class import PileOfCard
+from dataclasses import dataclass, field
+from bid_class import Bid
+from typing import TypeVar
 
+PileOfCardType = TypeVar("PileOfCardType", bound="PileOfCard")
 
+@dataclass(repr=False, slots=True)
 class Player:
-    """A class representing a player in the Belote game.
+    name: str
+    teammate: "Player" = field(default=None)
+    hand: PileOfCardType = field(default_factory=PileOfCard)
+    hand_at_beginning: PileOfCardType = field(default_factory=PileOfCard)
+    tricks_taken: list[tuple] = field(repr=False, default_factory=list)
+    trump_suit: str = field(default=None, repr=False)
 
-    Attributes:
-    name (str): The name of the player.
-    hand (PileOfCard): The cards in the player's hand.
-    tricks_taken (list): The tricks taken by the player.
-    teammate (Player): The player's teammate.
-    trump_suit (str): The trump suit.
-
-    Methods:
-    declare_trump: Declare the trump suit.
-    add_teammate: Add a teammate to the player.
-    play_card: Play a card from the player's hand.
-    """
-
-    def __init__(self, name: str, teammate=None):
-        """Initialize a player.
-
-        Parameters:
-        name (str): The name of the player.
-        teammate (Player): The player's teammate.
-        """
-        self.name = name
-        self.init_hand: PileOfCard
-        self.hand: PileOfCard
-        self.tricks_taken = []
-        self.teammate = teammate
-        self.trump_suit = None
+    def __post_init__(self):
+        self.hand_at_beginning = self.hand.copy()
 
     def declare_trump(self, trump_suit: str) -> None:
         """Declare the trump suit.
@@ -84,43 +70,39 @@ class Player:
         card: Card = None
         while card is None or card not in hand:
             played_card = input()
-            try:
-                card = Card(*played_card.split(' of ')[::-1])
-            except ValueError:
-                print('Invalid card. Try again.')
+            try :
+                card = Card(*played_card.split(" of ")[::-1])
+            except :
+                print("Invalid card. Try again.")
                 continue
             if (card not in hand):
                 print("You don't have that card in your hand. Try again.")
         self.hand.remove(card)
         return card
 
-    def bid(self, higgest_bid: int) -> int:
-        """Bid a number of points.
-
-        Parameters:
-        higgest_bid (int): The highest bid so far.
-
-        Returns:
-        int: The number of points bid by the player.
-        """
-        print(f'{self}, it is your turn to bid or pass. Your hand is: \
-            {self.hand}')
+    def bid(self, higgest_bid: Bid):
+        print(f"{self}, it is your turn to bid or pass. Your hand is: {self.hand}")
         bid = None
-        while bid not in range(higgest_bid+10, 180, 10):
-            print(f"Enter your bid between {higgest_bid+10} and 180 \
-                or 'CAPOT', press 'p' to pass:")
+        higgest_bid_amount = higgest_bid.bid
+        while bid not in range(higgest_bid_amount+10, 180, 10):
+            print(f"Enter your bid between {higgest_bid_amount+10} and 180 or 'CAPOT', press 'p' to pass:")
             bid = input()
-            if bid == 'p':
-                print('You have passed.')
+            print(f'You entered {bid}, which trump suit do you want? (Spades, Hearts, Diamonds, Clubs)')
+            trump = input()
+            if trump not in ["Spades", "Hearts", "Diamonds", "Clubs"]:
+                print("Invalid trump suit. Try again.")
+                continue
+            if bid == "p":
+                print("You have passed.")
                 return None
-            if bid == 'CAPOT':
-                return 250
+            if bid == "CAPOT":
+                return Bid(self, 250, trump)
             try:
                 bid = int(bid)
             except ValueError:
                 print('Invalid bid. Try again.')
                 continue
-        return bid
+        return Bid(self, bid, trump)
 
     def take_trick(self, trick: PileOfCard) -> None:
         """Add a trick to the player's tricks_taken.
@@ -133,36 +115,25 @@ class Player:
         """
         self.tricks_taken.append(trick)
 
-    def belote(self) -> bool:
-        """Return True if the player has a belote, False otherwise."""
-        if 'King' in [
-            card.rank for card in self.init_hand if self.is_trump(card)
-            ] and 'Queen' in [
-                card.rank for card in self.init_hand if self.is_trump(card)]:
-            return True
-        else:
-            return False
-
-
-class Dumb_Player(Player):
-    """A player that plays the first card in its hand."""
-
-    def __init__(self, name: str, teammate: Player = None):
-        """Initialize a dumb player.
-
-        Parameters:
-        name (str): The name of the player.
-        teammate (Player): The player's teammate.
-        """
-        super().__init__(name, teammate)
-
-    def __hash__(self) -> str:
-        """Return the hash of the player's name."""
+    def get_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "teammate": self.teammate.name if self.teammate else None,
+            "hand": self.hand,
+            "tricks_taken": [trick[0].get_dict() for trick in self.tricks_taken],
+            "trump_suit": self.trump_suit
+        }
+    
+    def __hash__(self):
         return hash(self.name)
 
-    def __repr__(self) -> str:
-        """Return a string representation of the player."""
-        return super().__repr__() + ' (Dumb)'
+class Dumb_Player(Player):
+    """A player that plays the first card in its hand"""
+    def __init__(self, name : str, teammate=None):
+        super().__init__(name, teammate)
+
+    def __repr__(self):
+        return super().__repr__() + " (Dumb)"
 
     def play_card(self, hand: PileOfCard, msg: str) -> Card:
         """Play a card from the player's hand.
@@ -175,80 +146,13 @@ class Dumb_Player(Player):
         Card: The card played by the player.
         """
         print(msg)
-        # card = max(hand)
         card = hand[0]
         self.hand.remove(card)
         return card
 
-    def bid(self, higgest_bid: int) -> int:
-        """Bid a number of points.
-
-        Parameters:
-        higgest_bid (int): The highest bid so far.
-
-        Returns:
-        int: The number of points bid by the player.
-        """
-        if higgest_bid == 70:
-            return 80
+    def bid(self, higgest_bid: Bid):
+        higgest_bid_amount = higgest_bid.bid
+        if higgest_bid_amount == 70:
+            return Bid(self, 80, "Spades")
         else:
             return None
-
-
-class Smart_Player(Player):
-    """A player that plays the best card in its hand.
-
-    Methods:
-    maxCard: Return the best card in a list of cards.
-    """
-
-    def __init__(self, name: str, teammate=None):
-        """Initialize a smart player.
-
-        Parameters:
-        name (str): The name of the player.
-        teammate (Player): The player's teammate.
-        """
-        super().__init__(name, teammate)
-
-    def __repr__(self):
-        """Return a string representation of the player."""
-        return super().__repr__() + ' (Smart)'
-
-    def play_card(self, hand: PileOfCard, msg: str) -> Card:
-        """Play a card from the player's hand.
-
-        Parameters:
-        hand (PileOfCard): The cards in the player's hand playable.
-        msg (str): A message to display to the player.
-
-        Returns:
-        Card: The card played by the player.
-        """
-        print(msg)
-        card = self.maxCard(hand, self.trump_suit)
-        self.hand.remove(card)
-        return card
-
-    def bid(self, higgest_bid: int) -> int:
-        """Bid a number of points.
-
-        Parameters:
-        higgest_bid (int): The highest bid so far.
-
-        Returns:
-        int: The number of points bid by the player.
-        """
-        if higgest_bid == 70:
-            return 80
-        else:
-            return None
-
-    def maxCard(self, hand, trump_suit):
-        """Return the card with the highest value in the hand."""
-        max_card = hand[0]
-        for card in hand:
-            if (card.calculate_card_points(trump_suit)
-                    > max_card.calculate_card_points(trump_suit)):
-                max_card = card
-        return max_card
