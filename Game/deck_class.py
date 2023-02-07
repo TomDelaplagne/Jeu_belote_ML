@@ -1,11 +1,40 @@
+"""This module contains the Deck class and PileOfCard."""
+
 import random
+
 from card_class import Card
 
+
 class PileOfCard(list):
-    def __init__(self, *args):
+    """A class representing a pile of cards.
+
+    This class inherits from the list class and has a method for calculating
+    the points scored by the pile of cards.
+
+    Attributes:
+    None
+
+    Methods:
+    calculate_points: Calculate the points scored by the pile of cards.
+    """
+
+    def __init__(self, *args: Card):
+        """Initialize a pile of cards.
+
+        Parameters:
+        args (Card): The cards in the pile.
+        """
         super().__init__(arg for arg in args if type(arg) == Card)
 
-    def append(self, __item : Card):
+    def append(self, __item: Card) -> 'PileOfCard':
+        """Append a card to the pile.
+
+        Parameters:
+        __item (Card): The card to append.
+
+        Returns:
+        PileOfCard: The pile of cards.
+        """
         super().append(__item)
         return self
 
@@ -16,7 +45,13 @@ class PileOfCard(list):
         return sum([card.calculate_card_points(trump_suit) for card in self])
 
     def __repr__(self):
-        return ", ".join([str(card) for card in self])
+        """Return a string representation of the pile of cards.
+
+        Returns:
+        str: The string representation of the pile of cards.
+        """
+        return ', '.join([str(card) for card in self])
+
 
     def load_deck(self, src):
         with open(src, "r") as f:
@@ -42,6 +77,7 @@ class Deck():
             self.cards.load_deck(src)
 
     def shuffle(self):
+        """Shuffle the deck of cards."""
         random.shuffle(self.cards)
 
     def deal(self, num_cards):

@@ -1,8 +1,10 @@
+"""This module contains the Player class and its subclasses."""
+
 from card_class import Card
+
 from deck_class import PileOfCard
 from dataclasses import dataclass, field
 from bid_class import Bid
-
 from typing import TypeVar
 
 PileOfCardType = TypeVar("PileOfCardType", bound="PileOfCard")
@@ -19,25 +21,54 @@ class Player:
     def __post_init__(self):
         self.hand_at_beginning = self.hand.copy()
 
-    def declare_trump(self, trump_suit):
+    def declare_trump(self, trump_suit: str) -> None:
+        """Declare the trump suit.
+
+        Parameters:
+        trump_suit (str): The trump suit.
+
+        Returns:
+        None
+        """
         self.trump_suit = trump_suit
-    
-    def add_teammate(self, teammate):
+
+    def add_teammate(self, teammate: 'Player') -> None:
+        """Add a teammate to the player.
+
+        Parameters:
+        teammate (Player): The player's teammate.
+
+        Returns:
+        None
+        """
         self.teammate = teammate
 
     def __repr__(self):
+        """Return a string representation of the player."""
         return self.name
 
     def __eq__(self, p2):
+        """Return True if the players have the same name."""
         return self.name == p2.name
 
-    def play_card(self, hand, msg):
-        print(f"{self.name}, it is your turn to play a card. Your hand is: {hand}")
+    def play_card(self, hand: PileOfCard, msg: str = '') -> Card:
+        """Play a card from the player's hand.
+
+        Parameters:
+        hand (PileOfCard): The cards in the player's hand playable.
+        msg (str): A message to display to the player.
+
+        Returns:
+        Card: The card played by the player.
+        """
+        print(f'{self.name}, it is your turn to play a card. Your hand is: \
+            {hand}')
         print(msg)
-        print("Enter the rank and suit of the card you want to play (e.g. 'Queen of Spades'):")
-        
-        card : Card = None
-        while card == None or card not in hand:
+        print("Enter the rank and suit of the card you want to play (e.g. \
+            'Queen of Spades'):")
+
+        card: Card = None
+        while card is None or card not in hand:
             played_card = input()
             try :
                 card = Card(*played_card.split(" of ")[::-1])
@@ -69,11 +100,19 @@ class Player:
             try:
                 bid = int(bid)
             except ValueError:
-                print("Invalid bid. Try again.")
+                print('Invalid bid. Try again.')
                 continue
         return Bid(self, bid, trump)
 
-    def take_trick(self, trick):
+    def take_trick(self, trick: PileOfCard) -> None:
+        """Add a trick to the player's tricks_taken.
+
+        Parameters:
+        trick (list): The trick taken by the player.
+
+        Returns:
+        None
+        """
         self.tricks_taken.append(trick)
 
     def get_dict(self) -> dict:
@@ -96,7 +135,16 @@ class Dumb_Player(Player):
     def __repr__(self):
         return super().__repr__() + " (Dumb)"
 
-    def play_card(self, hand, msg):
+    def play_card(self, hand: PileOfCard, msg: str) -> Card:
+        """Play a card from the player's hand.
+
+        Parameters:
+        hand (PileOfCard): The cards in the player's hand playable.
+        msg (str): A message to display to the player.
+
+        Returns:
+        Card: The card played by the player.
+        """
         print(msg)
         card = hand[0]
         self.hand.remove(card)
