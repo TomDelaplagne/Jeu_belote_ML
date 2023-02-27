@@ -11,6 +11,7 @@ PileOfCardType = TypeVar("PileOfCardType", bound="PileOfCard")
 
 @dataclass(repr=False, slots=True)
 class Player:
+    """A class to represent a single player in the Belote game."""
     name: str
     teammate: "Player" = field(default=None)
     hand: PileOfCardType = field(default_factory=PileOfCard)
@@ -19,50 +20,28 @@ class Player:
     trump_suit: str = field(default=None, repr=False)
 
     def __post_init__(self):
+        """Initialize the player's hand at the beginning of the game."""
         self.hand_at_beginning = self.hand.copy()
 
-    def declare_trump(self, trump_suit: str) -> None:
-        """Declare the trump suit.
-
-        Parameters:
-        trump_suit (str): The trump suit.
-
-        Returns:
-        None
-        """
+    def declare_trump(self, trump_suit):
+        """Declare the trump suit for the player."""
         self.trump_suit = trump_suit
-
-    def add_teammate(self, teammate: 'Player') -> None:
-        """Add a teammate to the player.
-
-        Parameters:
-        teammate (Player): The player's teammate.
-
-        Returns:
-        None
-        """
+    
+    def add_teammate(self, teammate):
+        """Add a teammate to the player."""
         self.teammate = teammate
 
     def __repr__(self):
         """Return a string representation of the player."""
         return self.name
 
-    def __eq__(self, p2):
-        """Return True if the players have the same name."""
+    def __eq__(self, p2): 
+        """Return True if the two players have the same name."""
         return self.name == p2.name
 
-    def play_card(self, hand: PileOfCard, msg: str = '') -> Card:
-        """Play a card from the player's hand.
-
-        Parameters:
-        hand (PileOfCard): The cards in the player's hand playable.
-        msg (str): A message to display to the player.
-
-        Returns:
-        Card: The card played by the player.
-        """
-        print(f'{self.name}, it is your turn to play a card. Your hand is: \
-            {hand}')
+    def play_card(self, hand, msg):
+        """Play a card from the player's hand."""
+        print(f"{self.name}, it is your turn to play a card. Your hand is: {hand}")
         print(msg)
         print("Enter the rank and suit of the card you want to play (e.g. \
             'Queen of Spades'):")
@@ -81,6 +60,7 @@ class Player:
         return card
 
     def bid(self, higgest_bid: Bid):
+        """Bid a number of points or pass."""
         print(f"{self}, it is your turn to bid or pass. Your hand is: {self.hand}")
         bid = None
         higgest_bid_amount = higgest_bid.bid
@@ -104,18 +84,12 @@ class Player:
                 continue
         return Bid(self, bid, trump)
 
-    def take_trick(self, trick: PileOfCard) -> None:
-        """Add a trick to the player's tricks_taken.
-
-        Parameters:
-        trick (list): The trick taken by the player.
-
-        Returns:
-        None
-        """
+    def take_trick(self, trick):
+        """Add a trick to the player's tricks_taken list."""
         self.tricks_taken.append(trick)
 
     def get_dict(self) -> dict:
+        """Return a dictionary representation of the player."""
         return {
             "name": self.name,
             "teammate": self.teammate.name if self.teammate else None,
@@ -125,6 +99,7 @@ class Player:
         }
     
     def __hash__(self):
+        """Return the hash of the player's name."""
         return hash(self.name)
 
 class Dumb_Player(Player):
@@ -135,22 +110,15 @@ class Dumb_Player(Player):
     def __repr__(self):
         return super().__repr__() + " (Dumb)"
 
-    def play_card(self, hand: PileOfCard, msg: str) -> Card:
-        """Play a card from the player's hand.
-
-        Parameters:
-        hand (PileOfCard): The cards in the player's hand playable.
-        msg (str): A message to display to the player.
-
-        Returns:
-        Card: The card played by the player.
-        """
+    def play_card(self, hand, msg):
+        """Play the first card in the player's hand."""
         print(msg)
         card = hand[0]
         self.hand.remove(card)
         return card
 
     def bid(self, higgest_bid: Bid):
+        """Bid a number of points or pass."""
         higgest_bid_amount = higgest_bid.bid
         if higgest_bid_amount == 70:
             return Bid(self, 80, "Spades")

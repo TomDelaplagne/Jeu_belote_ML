@@ -2,48 +2,71 @@ from card_class import Card
 from player_class import Player
 import numpy as np
 from bid_class import Bid
+from neural_class import NeuralNetwork
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
 class Player_Neural(Player):
     def __init__(self, name : str, teammate=None, strategy=None):
         super().__init__(name, teammate)
         concatenated_array = strategy
-        matrix1_size = 32 * 16
-        matrix2_size = 16 * 16
-        matrix3_size = 16 * 1
+        INPUT_NEURONS = 32
+        FIRST_LAYER_HIDDEN_NEURONS = 16
+        SECOND_LAYER_HIDDEN_NEURONS = 16 
+        output_neurons = 8
+        matrix1_size = INPUT_NEURONS * FIRST_LAYER_HIDDEN_NEURONS
+        matrix2_size = FIRST_LAYER_HIDDEN_NEURONS * SECOND_LAYER_HIDDEN_NEURONS
+        matrix3_size = SECOND_LAYER_HIDDEN_NEURONS * output_neurons
+        weigth_size = matrix1_size + matrix2_size + matrix3_size
 
-        matrix1 = concatenated_array[:matrix1_size].reshape(32, 16)
-        matrix2 = concatenated_array[matrix1_size:matrix1_size + matrix2_size].reshape(16, 16)
-        matrix3 = concatenated_array[matrix1_size + matrix2_size:].reshape(16, 1)
+        weigth_input_to_first_hidden = concatenated_array[:matrix1_size].reshape(INPUT_NEURONS, FIRST_LAYER_HIDDEN_NEURONS)
+        weigth_first_to_second_hidden = concatenated_array[matrix1_size:matrix1_size + matrix2_size].reshape(FIRST_LAYER_HIDDEN_NEURONS, SECOND_LAYER_HIDDEN_NEURONS)
+        weigth_second_hidden_to_output = concatenated_array[matrix1_size + matrix2_size:weigth_size].reshape(SECOND_LAYER_HIDDEN_NEURONS, output_neurons)
 
-        matrices = [matrix1, matrix2, matrix3]
-        self.strategy = matrices
+        self.first_hidden_bias = concatenated_array[weigth_size:weigth_size + FIRST_LAYER_HIDDEN_NEURONS]
+        self.second_hidden_bias = concatenated_array[weigth_size + FIRST_LAYER_HIDDEN_NEURONS:weigth_size + FIRST_LAYER_HIDDEN_NEURONS + SECOND_LAYER_HIDDEN_NEURONS]
+        self.output_bias = concatenated_array[weigth_size + FIRST_LAYER_HIDDEN_NEURONS + SECOND_LAYER_HIDDEN_NEURONS:]
+        
+        self.weigth = [weigth_input_to_first_hidden, weigth_first_to_second_hidden, weigth_second_hidden_to_output]
+        self.bias = [self.first_hidden_bias, self.second_hidden_bias, self.output_bias]
 
     def __repr__(self):
         return super().__repr__() + " (Neural)"
 
     def play_card(self, hand, msg):
         # Neural network here
-        if self.strategy == None:
+        if self.weigth == None:
             return hand[0]
-        
-        #create a numpy vector of the hand of the player
+
+        # create a numpy vector of the hand of the player
         hand_vector = np.zeros((32,1))
         for card in hand:
             suits = ["Spades", "Hearts", "Diamonds", "Clubs"]
             non_trump = ["Ace", "10", "King", "Queen", "Jack", "9", "8", "7"]
-            trump = {"Jack", "9", "Ace", "10", "King", "Queen", "8", "7"}
+            trump = ["Jack", "9", "Ace", "10", "King", "Queen", "8", "7"]
+            suits.pop(suits.index(self.trump_suit))
             if card.suit == self.trump_suit:
-                hand_vector[trump.index(card.rank) + 8 * suits.index(card.suit)] = 1
+                hand_vector[trump.index(card.rank)] = 1
             else:
-                hand_vector[non_trump.index(card.rank) + 8 * suits.index(card.suit)] = 1
+                hand_vector[non_trump.index(card.rank) + 8 * (suits.index(card.suit) + 1)] = 1
 
-        first_layer_network = np.matmul(hand_vector.T, self.strategy[0])
+        first_layer_network = np.matmul(hand_vector.T, self.weigth[0]) + self.bias[0]
 
-        second_layer_network = np.matmul(first_layer_network, self.strategy[1])
+        second_layer_network = np.matmul(first_layer_network, self.weigth[1]) + self.bias[1]
 
-        last_layer = np.matmul(second_layer_network, self.strategy[2])
+        last_layer = np.matmul(second_layer_network, self.weigth[2]) + self.bias[2]
 
-        return hand[abs(round(np.matmul(second_layer_network, self.strategy[2])[0, 0]))%len(hand)]
+        output = sigmoid(last_layer)
+
+        # find the index of the card to play
+        index_card_to_play = np.argmax(output) % len(hand)
+        
+        # write in played.txt the card played
+        # with open("played.txt", "a") as file:
+        #     file.write(str(output) + "\n")
+
+        return hand[index_card_to_play]
 
     def bid(self, highest_bid: Bid) -> Bid or None:
         if highest_bid.bid <= 100 or highest_bid is None:
@@ -165,6 +188,3 @@ class Player_Neural(Player):
             "tricks_taken": [trick[0].get_dict() for trick in self.tricks_taken],
             "trump_suit": self.trump_suit
         }
-    
-    def __del__(self):
-        print(f"{self} est mort")

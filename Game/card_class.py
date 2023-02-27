@@ -42,12 +42,12 @@ class Card:
         else:
             return non_trump[self.rank]
 
-    def __repr__(self) -> str:
-        """Return a string representation of a card."""
-        return f'{self.rank} of {self.suit}'
-
+    def __repr__(self):
+        """Return a string representation of the card."""
+        return f"{self.rank} of {self.suit}"
 
     def get_dict(self) -> dict:
+        """Return a dictionary representation of the card."""
         return {"suit": self.suit, "rank": self.rank}
 
     def __eq__(self, p2) -> bool:

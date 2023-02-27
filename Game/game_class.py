@@ -12,24 +12,11 @@ from deck_class import PileOfCard
 from bid_class import Bid
 
 class BeloteGame:
-    """A class representing a game of Belote.
-
-    Attributes:
-    players (list): The players in the game.
-    deck (Deck): The deck of cards.
-    trump_suit (str): The trump suit.
-
-    Methods:
-    play: Play the game.
-    start_bidding: Start the bidding.
-    play_trick: Play a trick.
-    """
-
-    def __init__(self, players: list[Player]):
+    def __init__(self, players: list[Player], deck: Deck = None):
         self.players: list[Player] = players
         for player in players:
             player.add_teammate(self.players[(self.players.index(player)+2)%4])
-        self.deck: Deck
+        self.deck: Deck = deck if deck is not None else None
         self.trump_suit = None
 
     def get_dict(self) -> dict:
@@ -39,8 +26,9 @@ class BeloteGame:
         """Shuffles and deals cards, starts bidding, plays tricks, calculates \
             points, and prints results."""
         # Shuffle and deal cards
-        self.deck = Deck()
-        self.deck.shuffle()
+        if self.deck is None:
+            self.deck = Deck()
+            self.deck.shuffle()
         hands = [self.deck.deal(8) for _ in self.players]
         for i, hand in enumerate(hands):
             self.players[i].init_hand = hand[:]
@@ -56,6 +44,9 @@ class BeloteGame:
 
         # Declare the trump suit
         self.trump_suit = bid.trump
+
+        for player in self.players:
+            player.trump_suit = self.trump_suit
 
         # Play the tricks
         trick_winner: Player = None
@@ -404,6 +395,3 @@ class BeloteGame:
             partner = self.players[(self.players.index(player)+2)%4]
             points[player] = points[partner]
         return points
-
-    def __del__(self):
-        print("The game has been deleted.")
