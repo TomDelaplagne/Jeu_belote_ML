@@ -1,5 +1,9 @@
-from card_class import Card
-from player_class import Player
+import os
+import copy
+
+from deck_class import Deck
+from player_class import Player, Dumb_Player
+from game_class import BeloteGame
 import numpy as np
 from bid_class import Bid
 
@@ -194,7 +198,7 @@ class Player_Neural(Player):
 
 class NeuralNetwork(nn.Module):
     """Neural network for the AI"""
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size: int, hidden_size: int, output_size: int):
         super().__init__()
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
@@ -229,44 +233,43 @@ class NeuralNetworkTrainer:
                  model: NeuralNetwork,
                  loss_fn: torch.nn.modules.loss,
                  optimizer: torch.optim,
-                 train_dataloader: torch.utils.data.dataloader.DataLoader):
+                 num_decks: int = 1000):
 
         self.model = model
         self.loss_fn = loss_fn
         self.optimizer = optimizer
-        self.train_dataloader = train_dataloader
+        self.num_decks = num_decks
+
+    def generate_decks(self, num_decks: int) -> list[Deck]:
+        """Generate decks for training"""
+        decks = []
+        for _ in range(num_decks):
+            deck = Deck()
+            decks.append(deck)
+        return decks
 
     def train(self):
-        """Train the neural network"""
-        size = len(self.train_dataloader.dataset)
-        for batch, (X, y) in enumerate(self.train_dataloader):
-            # Compute prediction error
-            pred = self.model(X)
-            loss = self.loss_fn(pred, y)
+        """Train the neural network from minimized loss for unsupervised learning by playing games and optimize the results"""
+        decks = self.generate_decks(self.num_decks)
 
-            # Backpropagation
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+        results = []
+        current_deck_list = copy.deepcopy(decks)
 
-            if batch % 100 == 0:
-                loss, current = loss.item(), batch * len(X)
-                print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
-        print(f"loss: {loss:>7f}  [{size:>5d}/{size:>5d}]")
+        with redirect_stdout(open(os.devnull, "w")):
+            for deck in current_deck_list:
+                Lancelot = Player_Neural("Lancelot")
+                players: list[Player] = [Lancelot, Dumb_Player("Bob"), Dumb_Player("Fred"), Dumb_Player("David")]
+                game = BeloteGame(players, deck)
+                points = game.play()
+                results.append(points[str(Lancelot)])
+        
+        # Convert results to tensor
+        results = torch.tensor(results, dtype=torch.float32)
+        results = results.view(-1, 1)
 
-    # test the neural network
-    def test(self):
-        """Test the neural network"""
-        size = len(self.train_dataloader.dataset)
-        num_batches = len(self.train_dataloader)
-        self.model.eval()
-        test_loss, correct = 0, 0
-        with torch.no_grad():
-            for X, y in self.train_dataloader:
-                pred = self.model(X)
-                test_loss += self.loss_fn(pred, y).item()
-                correct += (pred.argmax(1) == y).type(torch.float).sum().item()
-        test_loss /= num_batches
-        correct /= size
-        print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+        # calculate loss
+        loss = self.loss_fn(self.model(results), results)
+
+
+
