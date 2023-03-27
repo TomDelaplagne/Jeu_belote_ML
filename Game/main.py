@@ -5,32 +5,33 @@ from contextlib import redirect_stdout
 from game_class import BeloteGame
 from player_class import Player, Dumb_Player
 from player_neural_class import Player_Neural
-from json import dumps, loads
 from alive_progress import alive_bar
 import numpy as np
-import os, sys
+import os
+import copy
 from scipy.optimize import minimize
+from deck_class import Deck
 
-
-def progress_callback(x):
-    print("Current value of the objective function:", cost_function(x))
-
-def cost_function(matrices):
+def cost_function(matrices, list_of_decks, NB_PARTIES):
     # Your cost function implementation here
-    Lancelot = Player_Neural("Lancelot", strategy=matrices)
-    players: list[Player] = [Lancelot, Dumb_Player("Bob"), Dumb_Player("Charlie"), Dumb_Player("David")]
-    game = BeloteGame(players)
-    NB_PARTIES = 500
+    global idx
     results = []
+    current_deck_list = copy.deepcopy(list_of_decks)
+
     with alive_bar(NB_PARTIES) as bar:
-        for _ in range(NB_PARTIES):
+        for deck in current_deck_list:
             with redirect_stdout(open(os.devnull, "w")):
+                Lancelot = Player_Neural("Lancelot", strategy=matrices)
+                # Lancelot2 = Player_Neural("Lancelot2", strategy=matrices)
+                players: list[Player] = [Lancelot, Dumb_Player("Bob"), Dumb_Player("Fred"), Dumb_Player("David")]
+                game = BeloteGame(players, deck)
                 points = game.play()
-            bar()
-            results.append(points[str(Lancelot)])
-    return -np.mean(results)
-
-
+                results.append(points[str(Lancelot)])
+                bar()
+    cost = -np.mean(results)
+    idx += 1
+    print(-cost, idx)
+    return cost
 
 def get_points(index: int) -> dict:
     players: list[Player] = [Player_Neural("Lancelot"), Dumb_Player("Bob"), Dumb_Player("Charlie"), Dumb_Player("David")]
@@ -55,26 +56,44 @@ def main(args=None):
         f.write("")
     with open(f'points', "w") as f:
         f.write("{}")
-    NB_PARTIES = 10_000
-
+    NB_PARTIES = 1_000
+    INPUT_NEURONS = 32
+    FIRST_LAYER_HIDDEN_NEURONS = 16
+    SECOND_LAYER_HIDDEN_NEURONS = 16
+    output_neurons = 8
 
     if os.path.isfile("strategy.npy"):
-        matrices = np.load("strategy.npy")
+        x0 = np.load("strategy.npy")
     else:
-        matrix1 = np.random.rand(32,16)
-        matrix2 = np.random.rand(16,16)
-        matrix3 = np.random.rand(16,1)
-        matrices = [matrix1, matrix2, matrix3]
+        matrix1 = np.random.normal(0, INPUT_NEURONS**-0.5,(INPUT_NEURONS, FIRST_LAYER_HIDDEN_NEURONS))
+        matrix2 = np.random.normal(0, FIRST_LAYER_HIDDEN_NEURONS**-0.5, (FIRST_LAYER_HIDDEN_NEURONS, SECOND_LAYER_HIDDEN_NEURONS))
+        matrix3 = np.random.normal(0, SECOND_LAYER_HIDDEN_NEURONS**-0.5, (SECOND_LAYER_HIDDEN_NEURONS, output_neurons))
+        first_hidden_bias = np.zeros(FIRST_LAYER_HIDDEN_NEURONS)
+        second_hidden_bias = np.zeros(SECOND_LAYER_HIDDEN_NEURONS)
+        output_bias = np.zeros(output_neurons)
+        x0 = np.concatenate([matrix1.flatten(), matrix2.flatten(), matrix3.flatten(), first_hidden_bias, second_hidden_bias, output_bias])
 
-    x0 = np.concatenate([matrices[0].flatten(), matrices[1].flatten(), matrices[2].flatten()])
-    res = minimize(cost_function, x0, method='BFGS', callback=progress_callback, options={'disp': True})
-    print(res)
-    np.save("strategy.npy", res)
+    matrix1_bounds = [(-1,1) for _ in range(INPUT_NEURONS * FIRST_LAYER_HIDDEN_NEURONS)]
+    matrix2_bounds = [(-1, 1) for _ in range(FIRST_LAYER_HIDDEN_NEURONS * SECOND_LAYER_HIDDEN_NEURONS)]
+    matrix3_bounds = [(-1, 1) for _ in range(SECOND_LAYER_HIDDEN_NEURONS * output_neurons)]
+    bias_bounds = [(None, None) for _ in range(FIRST_LAYER_HIDDEN_NEURONS+SECOND_LAYER_HIDDEN_NEURONS+output_neurons)]
 
+    list_of_decks = []
+    print("Generating decks...")
     with alive_bar(NB_PARTIES) as bar:
-        for i in range(1,NB_PARTIES+1):
-            _ = get_points(i)
+        for _ in range(NB_PARTIES):
+            list_of_decks.append(Deck())
             bar()
+    # x0 = np.concatenate([matrix1.flatten(), matrix2.flatten(), matrix3.flatten(), first_hidden_bias, second_hidden_bias, output_bias])
+    # print(cost_function(x0))
+
+    bounds_of_x0 = matrix1_bounds + matrix2_bounds + matrix3_bounds + bias_bounds
+
+    global idx
+    idx = 0
+    # , bounds=bounds_of_x0
+    res = minimize(cost_function, x0, method='Nelder-Mead', options={'disp': True, 'adaptive': False}, bounds=bounds_of_x0, args=(list_of_decks, NB_PARTIES))
+    np.save("strategy.npy", res.x)
 
 if __name__ == "__main__":
     main(args=None)

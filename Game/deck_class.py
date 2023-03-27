@@ -38,6 +38,7 @@ class Deck():
             for suit in ["Spades", "Hearts", "Diamonds", "Clubs"]:
                 for rank in ["Ace", "King", "Queen", "Jack", "10", "9", "8", "7"]:
                     self.cards.append(Card(suit, rank))
+            self.shuffle()
         else:
             self.cards.load_deck(src)
 

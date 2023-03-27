@@ -4,11 +4,11 @@ from deck_class import PileOfCard
 from bid_class import Bid
 
 class BeloteGame:
-    def __init__(self, players: list[Player]):
+    def __init__(self, players: list[Player], deck = None):
         self.players: list[Player] = players
         for player in players:
             player.add_teammate(self.players[(self.players.index(player)+2)%4])
-        self.deck: Deck
+        self.deck: Deck = deck if deck else None
         self.trump_suit = None
 
     def get_dict(self) -> dict:
@@ -18,8 +18,10 @@ class BeloteGame:
         """Shuffles and deals cards, starts bidding, plays tricks, calculates points, and prints results."""
         
         # Shuffle and deal cards
-        self.deck = Deck()
-        self.deck.shuffle()
+        if self.deck is None:
+            self.deck = Deck()
+            self.deck.shuffle()
+
         hands = [self.deck.deal(8) for _ in self.players]
         for i, hand in enumerate(hands):
             self.players[i].hand = hand
@@ -34,6 +36,9 @@ class BeloteGame:
 
         # Declare the trump suit
         self.trump_suit = bid.trump
+
+        for player in self.players:
+            player.trump_suit = self.trump_suit
 
         # Play the tricks
         trick_winner : Player = None
@@ -219,15 +224,21 @@ class BeloteGame:
         """Return True if the card is a trump card, False otherwise."""
         return card.suit == self.trump_suit
 
+    
     def calculate_points(self):
         """Calculate the points scored by each team in the current hand."""
         points = {player: 0 for player in self.players}
         # The last trick is 10 points worth
-        if len(self.players[0].tricks_taken) + len(self.players[2].tricks_taken) == 8:
+        player1 = self.players[0]
+        player2 = self.players[1]
+        player3 = self.players[2]
+        player4 = self.players[3]
+        if len(player1.tricks_taken) + len(player3.tricks_taken) == 8:
             # Team 1 (players 0 and 2) won all the tricks
-            points[self.players[0]] += 250  # Capot bonus
-            print(f"Team 1 (players {self.players[0]} and {self.players[2]}) won all the tricks. They get a capot bonus of 250 points.")
-        elif len(self.players[1].tricks_taken) + len(self.players[1].tricks_taken) == 8:
+            points[player1] += 250  # Capot bonus
+            print(f'Team 1 (players {player1} and {player3}) won all the \
+                tricks. They get a capot bonus of 250 points.')
+        elif len(player2.tricks_taken) + len(player2.tricks_taken) == 8:
             # Team 2 (players 1 and 3) won all the tricks
             points[self.players[1]] += 250  # Capot bonus
             print(f"Team 2 (players {self.players[1]} and {self.players[3]}) won all the tricks. They get a capot bonus of 250 points.")
@@ -281,6 +292,3 @@ class BeloteGame:
             partner = self.players[(self.players.index(player)+2)%4]
             points[player] = points[partner]
         return points
-
-    def __del__(self):
-        print("The game has been deleted.")
