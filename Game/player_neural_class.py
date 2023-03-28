@@ -10,11 +10,13 @@ def sigmoid(x):
 class Player_Neural(Player):
     def __init__(self, name : str, teammate=None, strategy=None):
         super().__init__(name, teammate)
+
+        self.weigth_importance_card = 10
         concatenated_array = strategy
         INPUT_NEURONS = 32
         FIRST_LAYER_HIDDEN_NEURONS = 16
         SECOND_LAYER_HIDDEN_NEURONS = 16 
-        output_neurons = 8
+        output_neurons = 1
         matrix1_size = INPUT_NEURONS * FIRST_LAYER_HIDDEN_NEURONS
         matrix2_size = FIRST_LAYER_HIDDEN_NEURONS * SECOND_LAYER_HIDDEN_NEURONS
         matrix3_size = SECOND_LAYER_HIDDEN_NEURONS * output_neurons
@@ -36,7 +38,7 @@ class Player_Neural(Player):
 
     def play_card(self, hand, msg):
         # Neural network here
-        if self.weigth == None:
+        if self.weigth is None:
             return hand[0]
 
         # create a numpy vector of the hand of the player
@@ -51,17 +53,26 @@ class Player_Neural(Player):
             else:
                 hand_vector[non_trump.index(card.rank) + 8 * (suits.index(card.suit) + 1)] = 1
 
-        first_layer_network = np.matmul(hand_vector.T, self.weigth[0]) + self.bias[0]
 
-        second_layer_network = np.matmul(first_layer_network, self.weigth[1]) + self.bias[1]
+        card_outputs = [0 for _ in range(len(hand))]
 
-        last_layer = np.matmul(second_layer_network, self.weigth[2]) + self.bias[2]
+        for i, card in enumerate(hand):
+            # apply importance weights to the hand vector
+            hand_vector[i] = hand_vector[i] * self.weigth_importance_card
 
-        output = sigmoid(last_layer)
+            first_layer_network = sigmoid(np.matmul(hand_vector.T, self.weigth[0]) + self.bias[0])
+
+            second_layer_network = sigmoid(np.matmul(first_layer_network, self.weigth[1]) + self.bias[1])
+
+            last_layer = np.matmul(second_layer_network, self.weigth[2]) + self.bias[2]
+
+            output = sigmoid(last_layer)
+
+            card_outputs[i] = output[0]
 
         # find the index of the card to play
-        index_card_to_play = np.argmax(output) % len(hand)
-        
+        index_card_to_play = np.argmax(card_outputs)
+
         # write in played.txt the card played
         # with open("played.txt", "a") as file:
         #     file.write(str(output) + "\n")

@@ -21,21 +21,22 @@ def cost_function(matrices):
     for i in range(NB_PARTIES):
         current_deck_list[i] = copy.deepcopy(list_of_decks[i])
 
-    with alive_bar(NB_PARTIES) as bar:
-        for deck in current_deck_list:
-            with redirect_stdout(open(os.devnull, "w")):
-                Lancelot = Player_Neural("Lancelot", strategy=matrices)
-                Lancelot2 = Player_Neural("Lancelot2", strategy=matrices)
-                players: list[Player] = [Lancelot, Dumb_Player("Bob"), Lancelot2, Dumb_Player("David")]
-                game = BeloteGame(players, deck)
-                points = game.play()
-                bar()
-                results.append(points[str(Lancelot)])
-    with open("played.txt", "a") as file:
-        file.write(f"{np.sum(np.square(matrices)) / 2}\n")
+    # with alive_bar(NB_PARTIES) as bar:
+    for deck in current_deck_list:
+        with redirect_stdout(open(os.devnull, "w")):
+            Lancelot = Player_Neural("Lancelot", strategy=matrices)
+            Lancelot2 = Player_Neural("Lancelot2", strategy=matrices)
+            players: list[Player] = [Lancelot, Dumb_Player("Bob"), Lancelot2, Dumb_Player("David")]
+            game = BeloteGame(players, deck)
+            points = game.play()
+            # bar()
+            results.append(points[str(Lancelot)])
+    # with open("played.txt", "a") as file:
+    #     file.write(f"{np.sum(np.square(matrices)) / 2}\n")
     cost = -np.mean(results)
     idx += 1
-    print(-cost, idx)
+    if idx%100 == 0:
+        print(-cost, idx)
     return cost
 
 def get_points(index: int) -> dict:
@@ -61,22 +62,22 @@ def main(args=None):
         f.write("")
     with open(f'points', "w") as f:
         f.write("{}")
-    NB_PARTIES = 1_000
+    NB_PARTIES = 1
     INPUT_NEURONS = 32
     FIRST_LAYER_HIDDEN_NEURONS = 16
     SECOND_LAYER_HIDDEN_NEURONS = 16
-    output_neurons = 8
+    output_neurons = 1
 
-    if os.path.isfile("strategy.npy"):
-        x0 = np.load("strategy.npy")
-    else:
-        matrix1 = np.random.normal(0, INPUT_NEURONS**-0.5,(INPUT_NEURONS, FIRST_LAYER_HIDDEN_NEURONS))
-        matrix2 = np.random.normal(0, FIRST_LAYER_HIDDEN_NEURONS**-0.5, (FIRST_LAYER_HIDDEN_NEURONS, SECOND_LAYER_HIDDEN_NEURONS))
-        matrix3 = np.random.normal(0, SECOND_LAYER_HIDDEN_NEURONS**-0.5, (SECOND_LAYER_HIDDEN_NEURONS, output_neurons))
-        first_hidden_bias = np.zeros(FIRST_LAYER_HIDDEN_NEURONS)
-        second_hidden_bias = np.zeros(SECOND_LAYER_HIDDEN_NEURONS)
-        output_bias = np.zeros(output_neurons)
-        x0 = np.concatenate([matrix1.flatten(), matrix2.flatten(), matrix3.flatten(), first_hidden_bias, second_hidden_bias, output_bias])
+    # if os.path.isfile("strategy.npy"):
+    #     # x0 = np.load("strategy.npy")
+    # else:
+    matrix1 = np.random.normal(0, INPUT_NEURONS**-0.5,(INPUT_NEURONS, FIRST_LAYER_HIDDEN_NEURONS))
+    matrix2 = np.random.normal(0, FIRST_LAYER_HIDDEN_NEURONS**-0.5, (FIRST_LAYER_HIDDEN_NEURONS, SECOND_LAYER_HIDDEN_NEURONS))
+    matrix3 = np.random.normal(0, SECOND_LAYER_HIDDEN_NEURONS**-0.5, (SECOND_LAYER_HIDDEN_NEURONS, output_neurons))
+    first_hidden_bias = np.zeros(FIRST_LAYER_HIDDEN_NEURONS)
+    second_hidden_bias = np.zeros(SECOND_LAYER_HIDDEN_NEURONS)
+    output_bias = np.zeros(output_neurons)
+    x0 = np.concatenate([matrix1.flatten(), matrix2.flatten(), matrix3.flatten(), first_hidden_bias, second_hidden_bias, output_bias])
 
     matrix1_bounds = [(-1,1) for _ in range(INPUT_NEURONS * FIRST_LAYER_HIDDEN_NEURONS)]
     matrix2_bounds = [(-1, 1) for _ in range(FIRST_LAYER_HIDDEN_NEURONS * SECOND_LAYER_HIDDEN_NEURONS)]
