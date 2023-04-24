@@ -25,6 +25,7 @@ class BeloteGame:
         hands = [self.deck.deal(8) for _ in self.players]
         for i, hand in enumerate(hands):
             self.players[i].hand = hand
+            self.players[i].hand_at_beginning = hand
 
 
         # Start the bidding
@@ -75,7 +76,7 @@ class BeloteGame:
                 else:
                     if (highest_bidder is not None) and (current_player == self.players[(self.players.index(highest_bidder)+3)%4]):
                         # All players have passed, the highest bidder wins the bid
-                        print(f"{highest_bid.player} has won the bid with a bid of {highest_bid.bid}.")
+                        print(f"{highest_bid.player} has won the bid with a bid of {highest_bid.bid} in {highest_bid.trump}.")
                         return highest_bid
             elif current_bid.bid > highest_bid.bid:
                 highest_bid = current_bid
@@ -124,15 +125,6 @@ class BeloteGame:
                 # Replace sorted suit cards in the original list
                 sorted_cards.extend(suit_cards)
         return sorted_cards
-
-    def declare_trump(self, declarer):
-        """Prompt the declarer to choose the trump suit."""
-        trump_suit = None
-        while trump_suit not in ["Spades", "Hearts", "Diamonds", "Clubs"]:
-            print(f"{declarer}, you have won the bid. Choose the trump suit (Spades, Hearts, Diamonds, or Clubs):")
-            trump_suit = input()
-        print(f"The trump suit is {trump_suit}.")
-        return trump_suit
 
     def play_trick(self, trick_num, trick_winner=None):
         """Play a trick of the game."""

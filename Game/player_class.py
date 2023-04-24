@@ -1,9 +1,10 @@
+from copy import deepcopy
+from typing import TypeVar
+
 from card_class import Card
 from deck_class import PileOfCard
 from dataclasses import dataclass, field
 from bid_class import Bid
-
-from typing import TypeVar
 
 PileOfCardType = TypeVar("PileOfCardType", bound="PileOfCard")
 
@@ -56,14 +57,14 @@ class Player:
         while bid not in range(higgest_bid_amount+10, 180, 10):
             print(f"Enter your bid between {higgest_bid_amount+10} and 180 or 'CAPOT', press 'p' to pass:")
             bid = input()
+            if bid == "p":
+                print("You have passed.")
+                return None
             print(f'You entered {bid}, which trump suit do you want? (Spades, Hearts, Diamonds, Clubs)')
             trump = input()
             if trump not in ["Spades", "Hearts", "Diamonds", "Clubs"]:
                 print("Invalid trump suit. Try again.")
                 continue
-            if bid == "p":
-                print("You have passed.")
-                return None
             if bid == "CAPOT":
                 return Bid(self, 250, trump)
             try:

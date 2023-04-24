@@ -1,8 +1,9 @@
-#! /usr/bin/python3.11
+#! /usr/bin/python3
 """This is the main routine for playing with 3 friends"""
 
 from game_class import BeloteGame
 from player_class import Player
+from player_neural_class import Player_Neural
 
 def main(args=None):
     """The main routine for playing with 3 friends"""
