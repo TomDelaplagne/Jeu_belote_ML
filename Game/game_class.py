@@ -4,7 +4,7 @@ from deck_class import PileOfCard
 from bid_class import Bid
 
 class BeloteGame:
-    def __init__(self, players: list[Player], deck = None):
+    def __init__(self, *players: list[Player], deck = None):
         self.players: list[Player] = players
         for player in players:
             player.add_teammate(self.players[(self.players.index(player)+2)%4])

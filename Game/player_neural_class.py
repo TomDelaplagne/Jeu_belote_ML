@@ -6,6 +6,7 @@ from player_class import Player, Dumb_Player
 from game_class import BeloteGame
 import numpy as np
 from bid_class import Bid
+import math
 
 import torch
 from torch import nn
@@ -22,7 +23,7 @@ class Player_Neural(Player):
         concatenated_array = strategy
         INPUT_NEURONS = 32
         FIRST_LAYER_HIDDEN_NEURONS = 16
-        SECOND_LAYER_HIDDEN_NEURONS = 16 
+        SECOND_LAYER_HIDDEN_NEURONS = 16
         output_neurons = 8
         matrix1_size = INPUT_NEURONS * FIRST_LAYER_HIDDEN_NEURONS
         matrix2_size = FIRST_LAYER_HIDDEN_NEURONS * SECOND_LAYER_HIDDEN_NEURONS
@@ -36,7 +37,7 @@ class Player_Neural(Player):
         self.first_hidden_bias = concatenated_array[weigth_size:weigth_size + FIRST_LAYER_HIDDEN_NEURONS]
         self.second_hidden_bias = concatenated_array[weigth_size + FIRST_LAYER_HIDDEN_NEURONS:weigth_size + FIRST_LAYER_HIDDEN_NEURONS + SECOND_LAYER_HIDDEN_NEURONS]
         self.output_bias = concatenated_array[weigth_size + FIRST_LAYER_HIDDEN_NEURONS + SECOND_LAYER_HIDDEN_NEURONS:]
-        
+
         self.weigth = [weigth_input_to_first_hidden, weigth_first_to_second_hidden, weigth_second_hidden_to_output]
         self.bias = [self.first_hidden_bias, self.second_hidden_bias, self.output_bias]
 
@@ -252,18 +253,17 @@ class NeuralNetworkTrainer:
         """Train the neural network from minimized loss for unsupervised learning by playing games and optimize the results"""
         decks = self.generate_decks(self.num_decks)
 
-        results = []
+        results = torch.tensor([])
         current_deck_list = copy.deepcopy(decks)
 
-
-        with redirect_stdout(open(os.devnull, "w")):
-            for deck in current_deck_list:
-                Lancelot = Player_Neural("Lancelot")
-                players: list[Player] = [Lancelot, Dumb_Player("Bob"), Dumb_Player("Fred"), Dumb_Player("David")]
-                game = BeloteGame(players, deck)
-                points = game.play()
-                results.append(points[str(Lancelot)])
+        for deck in current_deck_list:
+            Lancelot = Player_Neural("Lancelot")
+            players: list[Player] = [Lancelot, Dumb_Player("Bob"), Dumb_Player("Fred"), Dumb_Player("David")]
+            game = BeloteGame(players, deck)
+            points = game.play()
+            results.append(points[str(Lancelot)])
         
+        loss = results.sum()
         # Convert results to tensor
         results = torch.tensor(results, dtype=torch.float32)
         results = results.view(-1, 1)
@@ -272,4 +272,62 @@ class NeuralNetworkTrainer:
         loss = self.loss_fn(self.model(results), results)
 
 
+class TreeSearcherPlayer(Player):
+    """A player that uses a tree search algorithm to play cards."""
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.played_cards = []
+        self.search_tree = {}  # initialize an empty search tree
 
+    def play_card(self, hand, msg):
+        """Play a card according to the search tree."""
+
+        # if the search tree is empty, build it
+        if not self.search_tree:
+            self.build_search_tree(hand)
+
+
+        max_utility = -math.inf
+        for card in hand:
+            utility = self.get_average_utility(card)
+            if utility > max_utility:
+                max_utility = utility
+                card_to_play = card
+
+        # add the played card to the list of played cards
+        self.played_cards.append(card_to_play)
+        # remove the played card from the hand
+        hand.remove(card_to_play)
+        # return the selected card
+        return card_to_play
+
+    def regret(self, card):
+        """Calculate the regret of the card."""
+        my_utility = self.get_average_utility(card)
+        max_opponent_utility = -math.inf
+        for opponent_card in self.opponent_possible_cards():
+            utility = self.get_average_utility(opponent_card)
+            if utility > max_opponent_utility:
+                max_opponent_utility = utility
+        return max_opponent_utility - my_utility
+
+    def get_average_utility(self, card):
+        """Calculate the average utility of playing the card."""
+        if card in self.search_tree:
+            node = self.search_tree[card]
+            if node['plays'] > 0:
+                return node['utility'] / node['plays']
+        return 0  # if the card has not been played before, return 0
+
+    def opponent_possible_cards(self):
+        """Return a list of possible opponent cards."""
+        # TODO: implement this method based on the game rules and current state
+        pass
+
+    def update_search_tree(self, card, utility):
+        """Update the search tree with the result of playing the card."""
+        if card not in self.search_tree:
+            self.search_tree[card] = {'plays': 0, 'utility': 0}
+        node = self.search_tree[card]
+        node['plays'] += 1
+        node['utility'] += utility
