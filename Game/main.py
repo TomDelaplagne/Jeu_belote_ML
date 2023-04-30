@@ -1,88 +1,156 @@
-"""module to train the neural network on one deck"""
+"""module to train the Q table on one deck"""
 
-import os
-from contextlib import redirect_stdout
+import numpy as np
+import random
+from tqdm import tqdm
 
-from copy import deepcopy
+from gym_env import BeloteGameEnv
+from q_player_class import QPlayer
+from player_class import DumbPlayer
 
-import torch
-from torch import nn
+def greedy_policy(Qtable, state):
+	# Exploitation: take the action with the highest state, action value
+	state_idx = state_to_idx(state)
+	action = np.argmax(Qtable[state_idx][:])
+	return action
 
-import matplotlib.pyplot as plt
+def epsilon_greedy_policy(Qtable, state, epsilon):
+	# Randomly generate a number between 0 and 1
+	random_int = random.uniform(0,1)
+	# if random_int > greater than epsilon --> exploitation
+	if random_int > epsilon:
+		# Take the action with the highest value given a state
+		# np.argmax can be useful here
+		action = greedy_policy(Qtable, state)
+	# else --> exploration
+	else:
+		action = np.random.choice([0,1,2,3])
 
-from game_class import BeloteGame
-from deck_class import Deck
-from player_class import Dumb_Player
-from player_neural_class import PlayerNeural
+	return action
 
+def evaluate_agent(env, max_steps, n_eval_episodes, Q, seed):
+	"""
+	Evaluate the agent for ``n_eval_episodes`` episodes and returns average reward and std of reward.
+	:param env: The evaluation environment
+	:param n_eval_episodes: Number of episode to evaluate the agent
+	:param Q: The Q-table
+	:param seed: The evaluation seed array (for taxi-v3)
+	"""
+	episode_rewards = []
+	for episode in tqdm(range(n_eval_episodes)):
+		if seed:
+			state = env.reset(seed=seed[episode])
+		else:
+			state = env.reset()
+		done = False
+		total_rewards_ep = 0
+		
+		for _ in range(max_steps):
+			# Take the action (index) that have the maximum expected future reward given that state
+			action = greedy_policy(Q, state)
+			new_state, reward, done, _ = env.step(action)
+			total_rewards_ep += reward
+				
+			if done:
+				break
+			state = new_state
+		episode_rewards.append(total_rewards_ep)
+	mean_reward = np.mean(episode_rewards)
+	std_reward = np.std(episode_rewards)
 
-def init_weights(model):
-    """Initialize the weights of the neural network"""
-    if isinstance(model, nn.Linear):
-        torch.nn.init.xavier_uniform_(model.weight.data)
-        model.bias.data.fill_(0.01)
+	return mean_reward, std_reward
 
-def create_model(input_size=32, output_size=8, hidden_size=(16, 16)):
-    """Create a neural network model with 2 hidden layers"""
-    model = nn.Sequential(
-        nn.Linear(input_size, hidden_size[0]),
-        nn.ReLU(),
-        nn.Linear(hidden_size[0], hidden_size[1]),
-        nn.ReLU(),
-        nn.Linear(hidden_size[1], output_size)
-    )
+def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_steps, Qtable, learning_rate, gamma):
+	for episode in tqdm(range(n_training_episodes)):
+		# Reduce epsilon (because we need less and less exploration)
+		epsilon = min_epsilon + (max_epsilon - min_epsilon)*np.exp(-decay_rate*episode)
+		# Reset the environment
+		state = env.reset()
+		done = False
 
-    torch.manual_seed(0)
-    model.apply(init_weights)
-    return model
+		# repeat
+		for _ in range(max_steps):
+			# Choose the action At using epsilon greedy policy
+			action = epsilon_greedy_policy(Qtable, state, epsilon)
+
+			# Take action At and observe Rt+1 and St+1
+			# Take the action (a) and observe the outcome state(s') and reward (r)
+			new_state, reward, done, _ = env.step(action)
+
+			# Update Q(s,a):= Q(s,a) + lr [R(s,a) + gamma * max Q(s',a') - Q(s,a)]
+			state_idx = state_to_idx(state)
+			new_state_idx = state_to_idx(new_state)
+			Qtable[state_idx][action] = Qtable[state_idx][action] + learning_rate * (reward + gamma * np.max(Qtable[new_state_idx]) - Qtable[state_idx][action])
+
+			# Qtable[state][action] = Qtable[state][action] + learning_rate * (reward + gamma * np.max(Qtable[new_state]) - Qtable[state][action])
+
+			# If done, finish the episode
+			if done:
+				break
+
+			# Our next state is the new state
+			state = new_state
+	return Qtable
+
+def state_to_idx(state):
+	"""There is 16 variables that can take 17 values each, so we need to have a function for transforming the state into an index between 0 and 16*17"""
+	state_idx = 0
+	for i, value in enumerate(state):
+		state_idx += value * 17**i
+	return state_idx
 
 def main():
-    """Train the neural network by playing against dumb players"""
+	"""main function to train the Q table"""
+	q_player = QPlayer("QPlayer")
 
-    # first create the neural network model and the neural player
-    model = create_model()
-    neural_player = PlayerNeural("NeuralPlayer", model)
+	env = BeloteGameEnv(q_player, DumbPlayer("Player2"), DumbPlayer("Player3"), DumbPlayer("Player4"))
 
-    # then create the game
-    deck = Deck()
-    deck.shuffle()
-    game = BeloteGame(neural_player,
-                      Dumb_Player("Player2"),
-                      Dumb_Player("Player3"),
-                      Dumb_Player("Player4"),
-                      deck= deepcopy(deck))
+	print("_____OBSERVATION SPACE_____ \n")
+	print("Observation Space", env.observation_space)
+	sample = env.observation_space.sample()
+	print("Sample observation", sample, "with the associated idx value of ", state_to_idx(sample)) # Get a random observation
 
-    loss_fn = nn.MSELoss()
+	print("\n _____ACTION SPACE_____ \n")
+	print("Action Space Shape", env.action_space.n)
+	print("Action Space Sample", env.action_space.sample()) # Take a random action
 
-    nb_epoch = 50
+	state_spaces = env.observation_space.shape[0]
+	state_value = 17
+	print("There are ", state_spaces, " observationnal variable")
+	print("There is ", state_value, " possible values for each variable")
+	print("There is ", state_spaces ** state_value, " possible states")
+	# space_n1, space_n2 = state_space
+	# print("There are ", space_n1 * space_n2, " possible states")
 
-    optimizer = torch.optim.SGD(neural_player.model.parameters(), lr=0.1)
+	action_space = env.action_space.n
+	print("There are ", action_space, " possible actions")
 
-    loss_over_epoch = []
+	# Initialize the Q table
+	Qtable = np.zeros((state_spaces ** state_value, action_space))
 
-    for _ in range(nb_epoch):
-        game.deck = deepcopy(deck)
-        with redirect_stdout(open(os.devnull, "w", encoding="utf-8")):
-            points = game.play()[str(neural_player)]
-        max_points = 320.0
-        l = loss_fn(torch.tensor(float(points), requires_grad=True), torch.tensor(float(320.0), requires_grad=True))
-        optimizer.zero_grad()
-        l.backward()
-        optimizer.step()
-        loss_over_epoch.append(l.item())
-        print(f"Loss: {l.item()}")
+	# Training parameters
+	n_training_episodes = 10000  # Total training episodes
+	learning_rate = 0.7          # Learning rate
 
+	# Evaluation parameters
+	n_eval_episodes = 100        # Total number of test episodes
 
-    print(f"Final loss: {loss_over_epoch[-1]}")
+	# Environment parameters
+	max_steps = 4	             # Max steps per episode
+	gamma = 0.95                 # Discounting rate
+	eval_seed = []               # The evaluation seed of the environment
 
-    # save the model
-    torch.save(neural_player.model.state_dict(), "model.pth")
+	# Exploration parameters
+	max_epsilon = 1.0             # Exploration probability at start
+	min_epsilon = 0.05            # Minimum exploration probability
+	decay_rate = 0.0005           # Exponential decay rate for exploration prob
 
-    plt.figure()
-    plt.plot(loss_over_epoch)
-    plt.title("Loss over epoch")
-    plt.xlabel('epoch'), plt.ylabel('loss')
-    plt.show()
+	# Train our Agent
+	Qtable = train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_steps, Qtable, learning_rate, gamma)
+
+	# Evaluate our Agent
+	mean_reward, std_reward = evaluate_agent(env, max_steps, n_eval_episodes, Qtable, eval_seed)
+	print(f"Mean_reward={mean_reward:.2f} +/- {std_reward:.2f}")
 
 if __name__ == "__main__":
-    main()
+	main()
