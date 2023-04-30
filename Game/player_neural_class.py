@@ -18,26 +18,26 @@ class PlayerNeural(Player):
     def __init__(self, name : str, model: nn.Sequential, teammate=None):
         super().__init__(name, teammate)
         self.model = model
+        self.input = torch.zeros(32, requires_grad=True) + self.__hand_to_model_input(self.hand_at_beginning)
 
     def __hand_to_model_input(self, hand):
         """Convert the hand to a input 32 size tensor for the model"""
-        hand_vector = torch.zeros(32)
+        hand_vector = torch.zeros(32, requires_grad=False)
         for card in self.hand_at_beginning:
             suits = ["Spades", "Hearts", "Diamonds", "Clubs"]
             non_trump = ["Ace", "10", "King", "Queen", "Jack", "9", "8", "7"]
             trump = ["Jack", "9", "Ace", "10", "King", "Queen", "8", "7"]
             suits.pop(suits.index(self.trump_suit))
             if card.suit == self.trump_suit:
-                hand_vector[trump.index(card.rank)] = 1
+                hand_vector[trump.index(card.rank)] += 1
             else:
-                hand_vector[non_trump.index(card.rank) + 8 * (suits.index(card.suit) + 1)] = 1
+                hand_vector[non_trump.index(card.rank) + 8 * (suits.index(card.suit) + 1)] += 1
 
         return hand_vector
 
     def play_card(self, hand, msg):
         """Returns a card to play. Using the neural network model."""
-        input = self.__hand_to_model_input(hand)
-        p_cards = self.model(input)
+        p_cards = self.model(self.input)
 
         # convert the tensor to a probability distribution
         p_cards = torch.softmax(p_cards, dim=0)
