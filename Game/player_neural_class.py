@@ -52,7 +52,7 @@ class PlayerNeural(Player):
             card = self.hand_at_beginning[card_index]
             if card in hand:
                 # find the card in hand that have the most probability
-                if p_card > max_p_card:
+                if p_card >= max_p_card:
                     max_p_card = p_card
                     card_to_play = card
         self.hand.remove(card_to_play)

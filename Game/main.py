@@ -3,12 +3,15 @@
 import os
 from contextlib import redirect_stdout
 
+from copy import deepcopy
+
 import torch
 from torch import nn
 
 import matplotlib.pyplot as plt
 
 from game_class import BeloteGame
+from deck_class import Deck
 from player_class import Dumb_Player
 from player_neural_class import PlayerNeural
 
@@ -41,7 +44,13 @@ def main():
     neural_player = PlayerNeural("NeuralPlayer", model)
 
     # then create the game
-    Game = BeloteGame(neural_player, Dumb_Player("Player2"), Dumb_Player("Player3"), Dumb_Player("Player4"))
+    deck = Deck()
+    deck.shuffle()
+    game = BeloteGame(neural_player,
+                      Dumb_Player("Player2"),
+                      Dumb_Player("Player3"),
+                      Dumb_Player("Player4"),
+                      deck= deepcopy(deck))
 
     loss_fn = nn.MSELoss()
 
@@ -52,10 +61,11 @@ def main():
     loss_over_epoch = []
 
     for _ in range(nb_epoch):
+        game.deck = deepcopy(deck)
         with redirect_stdout(open(os.devnull, "w", encoding="utf-8")):
-            points = Game.play()[str(neural_player)]
+            points = game.play()[str(neural_player)]
         max_points = 320.0
-        l = loss_fn(torch.tensor(points), torch.tensor(max_points))
+        l = loss_fn(torch.tensor(float(points), requires_grad=True), torch.tensor(float(320.0), requires_grad=True))
         optimizer.zero_grad()
         l.backward()
         optimizer.step()
