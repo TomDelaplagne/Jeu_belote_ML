@@ -19,7 +19,7 @@ class BeloteGame:
             self.deck = Deck()
             self.deck.shuffle()
 
-        hands = [self.deck.deal(2) for _ in self.players]
+        hands = [self.deck.deal(3) for _ in self.players]
         for i, hand in enumerate(hands):
             self.players[i].hand = hand
 
@@ -92,5 +92,5 @@ class BeloteGame:
             for trick in player.tricks_taken:
                 for card in trick:
                     points[player] += card.calculate_card_points()
-        points = {player: round(points[player], -1) for player in self.players}
+        points = {player: round(points[player], 0) for player in self.players}
         return points

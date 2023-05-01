@@ -15,13 +15,13 @@ class BeloteGameEnv(gym.Env):
         self.trick_played = 0
         self.trick_winner = None
 
-        self.action_space = spaces.Discrete(2)
+        self.action_space = spaces.Discrete(3)
 
-        # 2 token des cartes en main parmis 6 cartes ou 0 = 2:7
-        # 3 token des cartes deja jouees ou 0 = 3:7
+        # 2 token des cartes en main parmis 6 cartes ou 0 = 3:7
+        # 3 token des cartes deja jouees ou 0 = 4:7
 
         # self.observation_space = spaces.MultiBinary([16, 17])
-        self.observation_space = spaces.Box(low=0, high=6, shape=(5,), dtype=int)
+        self.observation_space = spaces.Box(low=0, high=6, shape=(7,), dtype=int)
 
     def step(self, action):
         """Play a trick of the game."""
@@ -29,10 +29,9 @@ class BeloteGameEnv(gym.Env):
         # 0 = play first card
         # 1 = play second card
         # 2 = play third card
-        # 3 = play fourth card
 
         # Reward function:
-        # - 50 if he plays a card that cannot be played
+        # - 20 if he plays a card that cannot be played
         # -1 if the trick is lost
         # +1 if the trick is won
         # -10 if the game is lost
@@ -44,32 +43,32 @@ class BeloteGameEnv(gym.Env):
 
         # Play a trick
         self.game.players[0].action = action
+        self.trick_played += 1
         try:
             self.trick_winner = self.game.play_trick(self.trick_winner)
         except IndexError:
-            hand_observation = self.transform_card_list_to_token_list(self.game.players[0].hand, 2)
-            played_cards_obs = self.transform_card_list_to_token_list(self.game.played_cards, 3)
+            hand_observation = self.transform_card_list_to_token_list(self.game.players[0].hand, 3)
+            played_cards_obs = self.transform_card_list_to_token_list(self.game.played_cards, 4)
             observation = hand_observation + played_cards_obs
             done = True
-            reward = -50
+            reward = -20
             return observation, reward, done, info
 
-        hand_observation = self.transform_card_list_to_token_list(self.game.players[0].hand, 2)
-        played_cards_obs = self.transform_card_list_to_token_list(self.game.played_cards, 3)
+        hand_observation = self.transform_card_list_to_token_list(self.game.players[0].hand, 3)
+        played_cards_obs = self.transform_card_list_to_token_list(self.game.played_cards, 4)
         observation = hand_observation + played_cards_obs
-        if self.trick_played == 2:
+        if self.trick_played == 3:
             done = True
 
             # Calculate and assign points
             points = self.game.calculate_points()
-
-            if points.values[0] == max(points.values):
-                reward = points[0]*5
+            # print(points, max(points.values()))
+            if points[self.game.players[0]] > points[self.game.players[1]]:
+                reward = points[self.game.players[0]]*5
                 return observation, reward, done, info
             else:
                 reward = -10
                 return observation, reward, done, info
-
 
         if self.trick_winner == self.game.players[0]:
             reward = 1
@@ -81,13 +80,14 @@ class BeloteGameEnv(gym.Env):
     def reset(self, seed=None, options=None):
         """Reset the environment."""
         super().reset(seed=seed)
-
+        for player in self.game.players:
+            player.reset()
         self.game = BeloteGame(*self.game.players)
         self.trick_played = 0
         self.trick_winner = None
 
-        hand_observation = self.transform_card_list_to_token_list(self.game.players[0].hand, 2)
-        played_cards_obs = self.transform_card_list_to_token_list(self.game.played_cards, 3)
+        hand_observation = self.transform_card_list_to_token_list(self.game.players[0].hand, 3)
+        played_cards_obs = self.transform_card_list_to_token_list(self.game.played_cards, 4)
         observation = hand_observation + played_cards_obs
 
         info = {}
@@ -101,18 +101,6 @@ class BeloteGameEnv(gym.Env):
             return 0
 
         return suits.index(card.suit) * 2 + card.rank
-
-    # def transform_card_to_token(self, card):
-    #     """Transform a card to a token."""
-    #     suits = ["Hearts", "Spades", "Diamonds", "Clubs"]
-
-    #     token = [False for _ in range(17)]
-    #     if card is None:
-    #         token[-1] = True
-    #         return token
-
-    #     token[suits.index(card.suit) * 4 + card.rank] = True
-    #     return token
 
     def transform_card_list_to_token_list(self, card_list, size_of_token_list):
         """Transform a list of cards to a list of tokens using the last to fill in order for the

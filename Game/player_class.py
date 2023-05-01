@@ -18,6 +18,11 @@ class Player:
 
     def __eq__(self, player_2):
         return self.name == player_2.name
+    
+    def reset(self):
+        """Reset the player's hand and tricks taken."""
+        self.hand = []
+        self.tricks_taken = []
 
     def play_card(self, msg):
         """Play a card from the player's hand."""
