@@ -5,7 +5,7 @@ class QPlayer(Player):
     """A player that use a Q-learning algorithm to play."""
     def __init__(self, name):
         super().__init__(name)
-        self.action = None
+        self.action: int = None
 
     def play_card(self, msg):
         """Play a card."""

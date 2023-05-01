@@ -6,8 +6,8 @@ class Deck():
     def __init__(self, src: str = None):
         self.cards : list = []
         if src is None:
-            for suit in ["Spades", "Hearts", "Diamonds", "Clubs"]:
-                for rank in [1, 2, 3, 4]:
+            for suit in ["Spades", "Hearts", "Diamonds"]:
+                for rank in [1, 2]:
                     self.cards.append(Card(suit, rank))
 
     def shuffle(self):

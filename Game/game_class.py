@@ -19,7 +19,7 @@ class BeloteGame:
             self.deck = Deck()
             self.deck.shuffle()
 
-        hands = [self.deck.deal(4) for _ in self.players]
+        hands = [self.deck.deal(2) for _ in self.players]
         for i, hand in enumerate(hands):
             self.players[i].hand = hand
 
@@ -28,7 +28,7 @@ class BeloteGame:
 
         # Play the tricks
         trick_winner : Player = None
-        for _ in range(4):
+        for _ in range(2):
             trick_winner = self.play_trick(trick_winner)
 
         # Calculate and assign points

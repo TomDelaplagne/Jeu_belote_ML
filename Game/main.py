@@ -24,7 +24,7 @@ def epsilon_greedy_policy(Qtable, state, epsilon):
 		action = greedy_policy(Qtable, state)
 	# else --> exploration
 	else:
-		action = np.random.choice([0,1,2,3])
+		action = np.random.choice([0,1])
 
 	return action
 
@@ -39,9 +39,9 @@ def evaluate_agent(env, max_steps, n_eval_episodes, Q, seed):
 	episode_rewards = []
 	for episode in tqdm(range(n_eval_episodes)):
 		if seed:
-			state = env.reset(seed=seed[episode])
+			state, _ = env.reset(seed=seed[episode])
 		else:
-			state = env.reset()
+			state, _ = env.reset()
 		done = False
 		total_rewards_ep = 0
 		
@@ -65,7 +65,8 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
 		# Reduce epsilon (because we need less and less exploration)
 		epsilon = min_epsilon + (max_epsilon - min_epsilon)*np.exp(-decay_rate*episode)
 		# Reset the environment
-		state = env.reset()
+		state, _ = env.reset()
+
 		done = False
 
 		# repeat
@@ -80,6 +81,7 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
 			# Update Q(s,a):= Q(s,a) + lr [R(s,a) + gamma * max Q(s',a') - Q(s,a)]
 			state_idx = state_to_idx(state)
 			new_state_idx = state_to_idx(new_state)
+
 			Qtable[state_idx][action] = Qtable[state_idx][action] + learning_rate * (reward + gamma * np.max(Qtable[new_state_idx]) - Qtable[state_idx][action])
 
 			# Qtable[state][action] = Qtable[state][action] + learning_rate * (reward + gamma * np.max(Qtable[new_state]) - Qtable[state][action])
@@ -93,17 +95,19 @@ def train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_st
 	return Qtable
 
 def state_to_idx(state):
-	"""There is 16 variables that can take 17 values each, so we need to have a function for transforming the state into an index between 0 and 16*17"""
-	state_idx = 0
-	for i, value in enumerate(state):
-		state_idx += value * 17**i
-	return state_idx
+    """
+    Maps a state (represented as a tuple of 5 values) to an index between 0 and 16,806.
+    """
+    idx = 0
+    for i in range(len(state)):
+        idx += state[i] * (7 ** i)
+    return idx
 
 def main():
 	"""main function to train the Q table"""
 	q_player = QPlayer("QPlayer")
 
-	env = BeloteGameEnv(q_player, DumbPlayer("Player2"), DumbPlayer("Player3"), DumbPlayer("Player4"))
+	env = BeloteGameEnv(q_player, DumbPlayer("Player2"), DumbPlayer("Player3"))
 
 	print("_____OBSERVATION SPACE_____ \n")
 	print("Observation Space", env.observation_space)
@@ -115,7 +119,7 @@ def main():
 	print("Action Space Sample", env.action_space.sample()) # Take a random action
 
 	state_spaces = env.observation_space.shape[0]
-	state_value = 17
+	state_value = 7
 	print("There are ", state_spaces, " observationnal variable")
 	print("There is ", state_value, " possible values for each variable")
 	print("There is ", state_spaces ** state_value, " possible states")
@@ -125,11 +129,15 @@ def main():
 	action_space = env.action_space.n
 	print("There are ", action_space, " possible actions")
 
+	print("\n _____TRAINING_____ \n")
+	print("Training the Q table...")
+
+
 	# Initialize the Q table
-	Qtable = np.zeros((state_spaces ** state_value, action_space))
+	Qtable = np.zeros((7 ** (5 + 1) - 1, action_space))
 
 	# Training parameters
-	n_training_episodes = 10000  # Total training episodes
+	n_training_episodes = 1_000_000  # Total training episodes
 	learning_rate = 0.7          # Learning rate
 
 	# Evaluation parameters
@@ -147,6 +155,9 @@ def main():
 
 	# Train our Agent
 	Qtable = train(n_training_episodes, min_epsilon, max_epsilon, decay_rate, env, max_steps, Qtable, learning_rate, gamma)
+
+	# save the Q table
+	np.save("Qtable.npy", Qtable)
 
 	# Evaluate our Agent
 	mean_reward, std_reward = evaluate_agent(env, max_steps, n_eval_episodes, Qtable, eval_seed)
