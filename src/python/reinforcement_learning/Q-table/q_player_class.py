@@ -1,5 +1,5 @@
 """"""
-from player_class import Player
+from src.python.player.player_class import Player
 
 class QPlayer(Player):
     """A player that use a Q-learning algorithm to play."""

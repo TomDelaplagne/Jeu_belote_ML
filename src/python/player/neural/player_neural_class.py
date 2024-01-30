@@ -1,8 +1,8 @@
 import os
 import copy
 
-from deck_class import Deck
-from player_class import Player, Dumb_Player
+from src.python.deck.deck_class import Deck
+from src.python.player.player_class import Player, Dumb_Player
 from game_class import BeloteGame
 from bid_class import Bid
 

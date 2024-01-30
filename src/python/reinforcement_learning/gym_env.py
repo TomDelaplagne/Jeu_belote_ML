@@ -4,7 +4,7 @@ import gym
 from gym import spaces
 
 from game_class import BeloteGame
-from player_class import Player
+from src.python.player.player_class import Player
 
 class BeloteGameEnv(gym.Env):
     """A class to represent a Belote game environment."""

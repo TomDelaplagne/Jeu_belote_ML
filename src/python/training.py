@@ -10,11 +10,11 @@ import torch.nn as nn
 import matplotlib
 import matplotlib.pyplot as plt
 
-from DQN_network import DQN
-from replay_buffer import ReplayMemory, Transition
-from gym_env import BeloteGameEnv
+from src.python.reinforcement_learning.DQN.DQN_network import DQN
+from src.python.reinforcement_learning.replay_buffer import ReplayMemory, Transition
+from src.python.reinforcement_learning.gym_env import BeloteGameEnv
 from q_player_class import QPlayer
-from player_class import DumbPlayer
+from src.python.player.player_class import DumbPlayer
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

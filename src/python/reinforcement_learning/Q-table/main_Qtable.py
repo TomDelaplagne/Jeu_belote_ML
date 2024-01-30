@@ -4,9 +4,9 @@ import random
 import numpy as np
 from tqdm import tqdm
 
-from gym_env import BeloteGameEnv
+from src.python.reinforcement_learning.gym_env import BeloteGameEnv
 from q_player_class import QPlayer
-from player_class import DumbPlayer
+from src.python.player.player_class import DumbPlayer
 
 def greedy_policy(Qtable, state):
 	# Exploitation: take the action with the highest state, action value

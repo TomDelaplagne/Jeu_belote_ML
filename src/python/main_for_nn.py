@@ -11,9 +11,9 @@ from torch import nn
 import matplotlib.pyplot as plt
 
 from game_class import BeloteGame
-from deck_class import Deck
-from player_class import Dumb_Player
-from player_neural_class import PlayerNeural
+from src.python.deck.deck_class import Deck
+from src.python.player.player_class import Dumb_Player
+from src.python.player.neural.player_neural_class import PlayerNeural
 
 
 def init_weights(model):

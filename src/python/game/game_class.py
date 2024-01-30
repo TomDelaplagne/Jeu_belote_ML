@@ -2,33 +2,63 @@
 
 from copy import deepcopy
 
-from player_class import Player
-from deck_class import Deck
+from src.python.player.player_class import Player
+from src.python.deck.deck_class import Deck
+from src.python.utils.constants import Suit, NB_CARDS_PER_PLAYER
+from src.python.game.game_initializer_class import BeloteGameInitializer
+from src.python.game.game_trick_manager_class import BeloteTrickManager
+from src.python.game.game_scorer_class import BeloteScorer
+
+class BeloteGame:
+    def __init__(self, *players: list[Player], deck_src=None):
+        self.players: list[Player] = players
+        self.deck: Deck = Deck(src=deck_src) if deck_src else Deck(shuffle=True)
+        self.trick_manager: BeloteTrickManager = BeloteTrickManager(self.players)
+        self.scorer: BeloteScorer = BeloteScorer(self.players)
+
+    def play(self):
+        self.initialize_game()
+        self.play_tricks()
+        points = self.calculate_points()
+        return points
+
+    def initialize_game(self):
+        BeloteGameInitializer(self.players, self.deck).initialize()
+
+    def play_tricks(self):
+        self.trick_manager.play_all_tricks()
+
+    def calculate_points(self):
+        return self.scorer.calculate_points()
+
 
 class BeloteGame:
     """A class to represent a game of Belote."""
-    def __init__(self, *players: list[Player], deck = None):
+    def __init__(self, *players: list[Player], deck_src: Deck = None) -> None:
         self.players: list[Player] = players
-        self.deck: Deck = deck if deck else None
-        self.trump_suit = "Hearts"
-        self.current_trick = []
-        self.played_cards = []
+        self.deck: Deck = Deck(src = deck_src) if deck_src else Deck(shuffle=True)
+        self.trump_suit: Suit = None
+        self.current_trick: list = []
+        self.played_cards: list = []
 
-        # Shuffle and deal cards
-        if self.deck is None:
-            self.deck = Deck()
-            self.deck.shuffle()
-
-        hands = [self.deck.deal(3) for _ in self.players]
+        hands = [self.deck.deal(NB_CARDS_PER_PLAYER) for _ in self.players]
         for i, hand in enumerate(hands):
             self.players[i].hand = hand
 
+        self.set_partners()
+
+    def set_partners(self):
+        """Set the partners of each player inplace."""
+        for i, player in enumerate(self.players):
+            player.teammate = self.players[(i + 2) % 4]
+
     def play(self):
-        """Shuffles and deals cards, starts bidding, plays tricks, calculates points, and prints results."""
+        """Shuffles and deals cards, starts bidding, plays tricks, calculates points,
+        and prints results."""
 
         # Play the tricks
         trick_winner : Player = None
-        for _ in range(2):
+        for _ in range(NB_CARDS_PER_PLAYER):
             trick_winner = self.play_trick(trick_winner)
 
         # Calculate and assign points
