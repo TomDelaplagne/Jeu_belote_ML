@@ -5,34 +5,33 @@ from copy import deepcopy
 from src.python.player.player_class import Player
 from src.python.deck.deck_class import Deck
 from src.python.utils.constants import Suit, NB_CARDS_PER_PLAYER
-from src.python.game.game_initializer_class import BeloteGameInitializer
-from src.python.game.game_trick_manager_class import BeloteTrickManager
-from src.python.game.game_scorer_class import BeloteScorer
+# from src.python.game.game_initializer_class import GameInitializer
+# from src.python.game.game_trick_manager_class import TrickManager
+# from src.python.game.game_scorer_class import Scorer
 
-class BeloteGame:
-    def __init__(self, *players: list[Player], deck_src=None):
-        self.players: list[Player] = players
-        self.deck: Deck = Deck(src=deck_src) if deck_src else Deck(shuffle=True)
-        self.trick_manager: BeloteTrickManager = BeloteTrickManager(self.players)
-        self.scorer: BeloteScorer = BeloteScorer(self.players)
+# class Game:
+#     def __init__(self, *players: list[Player], deck_src=None):
+#         self.players: list[Player] = players
+#         self.deck: Deck = Deck(src=deck_src) if deck_src else Deck(shuffle=True)
+#         self.trick_manager: TrickManager = TrickManager(self.players)
+#         self.scorer: Scorer = Scorer(self.players)
 
-    def play(self):
-        self.initialize_game()
-        self.play_tricks()
-        points = self.calculate_points()
-        return points
+#     def play(self):
+#         self.initialize_game()
+#         self.play_tricks()
+#         points = self.calculate_points()
+#         return points
 
-    def initialize_game(self):
-        BeloteGameInitializer(self.players, self.deck).initialize()
+#     def initialize_game(self):
+#         GameInitializer(self.players, self.deck).initialize()
 
-    def play_tricks(self):
-        self.trick_manager.play_all_tricks()
+#     def play_tricks(self):
+#         self.trick_manager.play_all_tricks()
 
-    def calculate_points(self):
-        return self.scorer.calculate_points()
+#     def calculate_points(self):
+#         return self.scorer.calculate_points()
 
-
-class BeloteGame:
+class Game:
     """A class to represent a game of Belote."""
     def __init__(self, *players: list[Player], deck_src: Deck = None) -> None:
         self.players: list[Player] = players

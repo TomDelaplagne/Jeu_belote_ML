@@ -31,12 +31,11 @@ class Player(ABC):
                   trump_suit: Suit) -> Card:
         """Play a card from the player's hand."""
 
-        # check if strategy is not an abstract method
-        if self.strategy == Player.strategy:
-            raise ValueError("Player strategy is not set.")
         if len(self.hand) == 0:
             raise ValueError("Player has no cards in hand.")
         card = self.strategy(context_msg, trick_cards, trump_suit)
+        if card not in self.hand:
+            raise ValueError("Player tried to play a card that is not in hand.")
         self.hand.remove(card)
         return card
 
@@ -68,19 +67,22 @@ class HumanPlayer(Player):
         print(f"The trump suit is: {trump_suit}")
         print("Enter the rank and suit of the card you want to play (e.g. 'Queen of Spades'):")
 
-        card : Card = None
-        while card is None or card not in self.hand:
+        while True:
             played_card = input()
-            try :
-                suit, rank = played_card.split(" of ")[::-1]
-                rank = int(rank)
-                card = Card(suit, rank)
-            except ValueError:
-                print("Invalid card. Try again.")
-                continue
-            if card not in self.hand:
-                print("You don't have that card in your hand. Try again.")
-        return card
+            card = self._parse_card(played_card)
+
+            if card is not None and card in self.hand:
+                return card
+            print("Invalid card or not in your hand. Try again.")
+
+    def _parse_card(self, played_card):
+        try:
+            suit, rank_str = played_card.split(" of ")[::-1]
+            rank = int(rank_str)
+            return Card(suit, rank)
+        except ValueError:
+            print("Invalid card format. Try again.")
+            return None
 
 class DumbPlayer(Player):
     """A player that plays the first card in its hand"""
@@ -90,8 +92,7 @@ class DumbPlayer(Player):
     def __repr__(self):
         return super().__repr__() + " (Dumb)"
 
-    def play_card(self, _, __, ___):
+    def strategy(self, _, __, ___):
         """Play the first card in the hand."""
         card = self.hand[0]
-        self.hand.remove(card)
         return card
