@@ -12,9 +12,13 @@ class Card:
 
     def calculate_card_points(self, trump_suit: Suit) -> int:
         """Calculate the points scored by a single card in the Belote game."""
-        if self.suit == trump_suit:
+        if self.is_trump(trump_suit):
             return RANK_TO_POINTS[self.rank]
         return RANK_TO_TRUMP_POINTS[self.rank]
 
     def __repr__(self):
         return f"{self.rank} of {self.suit}"
+
+    def is_trump(self, trump_suit: Suit) -> bool:
+        """Return True if the card is a trump, False otherwise."""
+        return self.suit == trump_suit

@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 
 from src.python.card.card_class import Card
-from src.python.utils.constants import Suit
+from src.python.utils.constants import Suit, Rank
 
 @dataclass(repr=False, slots=True)
 class Player(ABC):
@@ -50,6 +50,10 @@ class Player(ABC):
     def take_trick(self, trick: list[Card]):
         """Add a trick to the player's list of tricks taken."""
         self.tricks_taken.append(trick)
+
+    def has_belote(self, trump_suit: Suit) -> bool:
+        """Return True if the player has the belote (i.e. the king and queen of the trump suit)."""
+        return Card(trump_suit, Rank.KING) in self.hand and Card(trump_suit, Rank.QUEEN) in self.hand
 
 class HumanPlayer(Player):
     """A class to represent a single human player in the Belote game."""

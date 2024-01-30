@@ -1,10 +1,12 @@
 #! /usr/bin/python3
 """This is the main routine for playing with 3 friends"""
 
+import sys
+sys.path.append('C:/Users/delap/Desktop/Code/Jeu_belote_ML')
+
 from src.python.game.game_class import Game
 # from src.python.player.player_class import HumanPlayer
 from src.python.player.player_class import DumbPlayer
-
 
 def main(args=None):
     """The main routine for playing with 3 friends"""
